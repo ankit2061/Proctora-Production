@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    container_name: proctora-ai-engine
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - FLASK_ENV=production
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: proctora-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - PYTHON_AI_URL=http://ai-engine:5001
+    depends_on:
+      - ai-engine
+    restart: unless-stopped
+
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+      dockerfile: Dockerfile
+    container_name: proctora-admin
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

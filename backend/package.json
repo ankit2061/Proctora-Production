@@ -1,0 +1,17 @@
+{
+  "name": "proctora-backend",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/app/server.js",
+  "scripts": {
+    "start": "node src/app/server.js",
+    "dev": "node --watch src/app/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.7",
+    "sqlite3": "^5.1.7",
+    "uuid": "^9.0.1"
+  }
+}

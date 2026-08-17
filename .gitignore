@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.venv/
+env/
+venv/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Databases & Runtime Data
+*.db
+*.sqlite
+*.sqlite3
+data.db
+proctor_db/
+temp_uploads/
+
+# Build & Dist Outputs
+dist/
+build/
+out/
+dist-electron/
+*.dmg
+*.exe
+*.AppImage
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+proctor_system.log
+proctor_logs.json
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test Crops & Temporary Artifacts
+user_*crop.jpg
+test_*crop.jpg
