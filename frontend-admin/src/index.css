@@ -1,86 +1,271 @@
-:root {
-  --bg-primary: #090d16;
-  --bg-surface: #111827;
-  --bg-card: #1f293d;
-  --border: #2e384d;
-  --text-main: #f9fafb;
-  --text-muted: #94a3b8;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --risk-low: #10b981;
-  --risk-med: #f59e0b;
-  --risk-high: #ef4444;
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-}
+@import './theme.css';
 
-* {
+/* ── Reset ── */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-main);
-  font-family: var(--font-sans);
+  background-color: var(--bg-deep);
+  color: var(--chalk);
+  font-family: var(--font-body);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
 }
 
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--bg-raised); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--chalk-dim); }
+
+/* ── Base Interactive ── */
 button {
-  font-family: inherit;
+  font-family: var(--font-body);
   cursor: pointer;
   border: none;
   outline: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+button:focus-visible {
+  outline: 2px solid var(--amber-watch);
+  outline-offset: 2px;
 }
 
 input, textarea, select {
-  font-family: inherit;
+  font-family: var(--font-body);
   outline: none;
+  color: var(--chalk);
+  background-color: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: 4px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--chalk-mid);
+  box-shadow: 0 0 0 2px rgba(200, 195, 184, 0.1);
+}
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--amber-watch);
+  outline-offset: 1px;
 }
 
-.glass-card {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(14px);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+/* ── Panels (flat, no glassmorphism) ── */
+.panel-slate {
+  background-color: var(--bg-slate);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+.panel-raised {
+  background-color: var(--bg-raised);
+  border: 1px solid var(--border-mid);
+  border-radius: 4px;
 }
 
-.badge {
-  display: inline-flex;
+/* ══════════════════════════════════════════════
+   WATCH FLOOR — CCTV Monitor Wall Tile Grid
+   ══════════════════════════════════════════════ */
+.watch-floor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+/* Desk Tile — base */
+.desk-tile {
+  background: var(--bg-slate);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.desk-tile:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.desk-tile:focus-visible {
+  outline: 2px solid var(--amber-watch);
+  outline-offset: 2px;
+}
+
+/* HIGH risk — spans wider, pulsing border */
+.desk-tile--high {
+  grid-column: span 2;
+  border-color: var(--signal-red);
+  border-width: 2px;
+  min-height: 160px;
+  animation: risk-pulse 2.5s ease-in-out infinite;
+}
+
+/* MEDIUM risk — amber stripe */
+.desk-tile--med {
+  border-left: 3px solid var(--amber-watch);
+}
+
+/* LOW risk — compact */
+.desk-tile--low {
+  min-height: 64px;
+  padding: 12px 16px;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  gap: 16px;
 }
 
-.badge-low {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--risk-low);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+/* ── Risk Pulse (the ONE animation) ── */
+@keyframes risk-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 transparent;
+    border-color: var(--signal-red);
+  }
+  50% {
+    box-shadow: 0 0 16px 2px var(--signal-red-glow);
+    border-color: #F06B68;
+  }
 }
 
-.badge-med {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--risk-med);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+@media (prefers-reduced-motion: reduce) {
+  .desk-tile--high {
+    animation: none;
+    box-shadow: 0 0 8px 1px var(--signal-red-glow);
+  }
 }
 
-.badge-high {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--risk-high);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+/* Responsive: HIGH tiles go back to span-1 on narrow screens */
+@media (max-width: 720px) {
+  .watch-floor {
+    grid-template-columns: 1fr;
+  }
+  .desk-tile--high {
+    grid-column: span 1;
+  }
 }
 
-.timeline-dot {
-  width: 12px;
-  height: 12px;
+/* ══════════════════════════════════════════════
+   INCIDENT TAPE — tag text style (not pills)
+   ══════════════════════════════════════════════ */
+.incident-tape {
+  font-family: var(--font-data);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--chalk-mid);
+}
+.incident-tape .tag-critical {
+  color: var(--signal-red);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.incident-tape .tag-warning {
+  color: var(--amber-watch);
+  font-weight: 500;
+}
+.incident-tape .tag-info {
+  color: var(--chalk-dim);
+  font-weight: 400;
+}
+.incident-tape .tag-sep {
+  color: var(--chalk-dim);
+  margin: 0 4px;
+  user-select: none;
+}
+
+/* ══════════════════════════════════════════════
+   BUTTONS — chalk-on-slate primary, not amber
+   ══════════════════════════════════════════════ */
+.btn-primary {
+  background: var(--chalk);
+  color: var(--bg-deep);
+  font-weight: 600;
+  border-radius: 4px;
+  font-size: 0.825rem;
+  letter-spacing: 0.01em;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #D8D3C8;
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--chalk);
+  font-weight: 500;
+  border-radius: 4px;
+  font-size: 0.825rem;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(200, 195, 184, 0.06);
+  border-color: var(--border-strong);
+}
+
+.btn-danger {
+  background: var(--signal-red-dim);
+  border: 1px solid var(--signal-red);
+  color: var(--signal-red);
+  font-weight: 600;
+  border-radius: 4px;
+  font-size: 0.825rem;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--signal-red);
+  color: #fff;
+}
+
+/* ══════════════════════════════════════════════
+   WATCH LOG — timeline in detail view
+   ══════════════════════════════════════════════ */
+.watch-log-entry {
+  padding: 10px 14px;
+  background: var(--bg-raised);
+  border-radius: 4px;
+  border-left: 3px solid var(--clear-green);
+}
+.watch-log-entry--critical {
+  border-left-color: var(--signal-red);
+}
+.watch-log-entry--warning {
+  border-left-color: var(--amber-watch);
+}
+
+/* ══════════════════════════════════════════════
+   SEVERITY DOT INDICATORS
+   ══════════════════════════════════════════════ */
+.sev-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  position: absolute;
-  left: -6px;
-  top: 16px;
+  flex-shrink: 0;
 }
+.sev-dot--high { background: var(--signal-red); box-shadow: 0 0 6px var(--signal-red-glow); }
+.sev-dot--med  { background: var(--amber-watch); }
+.sev-dot--low  { background: var(--clear-green); }
+
+/* ══════════════════════════════════════════════
+   UTILITY
+   ══════════════════════════════════════════════ */
+.font-display {
+  font-family: var(--font-display);
+}
+.font-data {
+  font-family: var(--font-data);
+}
+.text-red    { color: var(--signal-red); }
+.text-amber  { color: var(--amber-watch); }
+.text-green  { color: var(--clear-green); }
+.text-chalk  { color: var(--chalk); }
+.text-mid    { color: var(--chalk-mid); }
+.text-dim    { color: var(--chalk-dim); }

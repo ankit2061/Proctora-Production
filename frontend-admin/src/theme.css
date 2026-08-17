@@ -1,0 +1,34 @@
+:root {
+  /* ── Backgrounds ── */
+  --bg-deep:     #0D0F17;   /* Primary — CCTV-room dark */
+  --bg-slate:    #1A1D28;   /* Elevated surfaces, desk tiles */
+  --bg-raised:   #22252F;   /* Inner panels within slate */
+
+  /* ── Palette (6 named swatches) ── */
+  --signal-red:       #E8423F;
+  --signal-red-dim:   rgba(232, 66, 63, 0.14);
+  --signal-red-glow:  rgba(232, 66, 63, 0.35);
+
+  --amber-watch:      #D4943A;
+  --amber-watch-dim:  rgba(212, 148, 58, 0.14);
+  --amber-watch-glow: rgba(212, 148, 58, 0.30);
+
+  --clear-green:      #3BA676;
+  --clear-green-dim:  rgba(59, 166, 118, 0.14);
+  --clear-green-glow: rgba(59, 166, 118, 0.30);
+
+  /* ── Text ── */
+  --chalk:        #C8C3B8;   /* Primary text — warm parchment */
+  --chalk-mid:    #8A867C;   /* Secondary text */
+  --chalk-dim:    #5C5952;   /* Muted / disabled */
+
+  /* ── Borders ── */
+  --border-subtle: rgba(200, 195, 184, 0.08);
+  --border-mid:    rgba(200, 195, 184, 0.15);
+  --border-strong: rgba(200, 195, 184, 0.25);
+
+  /* ── Typography ── */
+  --font-display: 'DM Mono', 'Courier New', monospace;
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-data:    'JetBrains Mono', 'Consolas', monospace;
+}

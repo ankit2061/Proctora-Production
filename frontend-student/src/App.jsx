@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { 
-  ShieldCheck, 
-  AlertTriangle, 
-  Clock, 
-  CheckCircle2, 
-  ArrowRight, 
-  ArrowLeft, 
+import {
+  ShieldCheck,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
   Send,
   Activity,
   Award,
-  Lock,
-  Monitor,
   Camera,
   Mic,
   Eye,
@@ -21,10 +19,7 @@ import {
   Video,
   Smartphone,
   Check,
-  Wifi,
   Compass,
-  Layers,
-  Sparkles,
   LogOut,
   RotateCcw
 } from 'lucide-react';
@@ -90,7 +85,7 @@ const SAMPLE_QUESTIONS = [
 function MobileProctorView({ sessionId, studentId, backendHost }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const [facingMode, setFacingMode] = useState('environment'); // Default to rear camera for desk view
+  const [facingMode, setFacingMode] = useState('environment');
   const [streamActive, setStreamActive] = useState(false);
   const [framesSent, setFramesSent] = useState(0);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -185,11 +180,11 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#070a12',
-      color: '#fff',
+      background: 'var(--bg-deep)',
+      color: 'var(--chalk)',
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: 'var(--font-sans)',
+      fontFamily: 'var(--font-body)',
       padding: '16px'
     }}>
       {/* Header */}
@@ -197,78 +192,80 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingBottom: '14px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        marginBottom: '16px'
+        paddingBottom: '12px',
+        borderBottom: '1px solid var(--border-subtle)',
+        marginBottom: '14px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Smartphone size={22} color="#6366f1" />
-          <span style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.02em' }}>PROCTORA DESK CAM</span>
-        </div>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '4px 10px',
-          background: streamActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-          color: streamActive ? '#34d399' : '#f87171',
-          borderRadius: '9999px',
-          fontSize: '0.75rem',
-          fontWeight: 700
+        <span style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '0.85rem',
+          color: 'var(--chalk)',
+          letterSpacing: '0.06em'
         }}>
-          <span style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            background: streamActive ? '#34d399' : '#f87171'
-          }} />
-          {streamActive ? 'Live Streaming' : 'Connecting'}
-        </div>
+          DESK CAM
+        </span>
+        <span style={{
+          fontFamily: 'var(--font-data)',
+          fontSize: '0.72rem',
+          color: streamActive ? 'var(--clear-green)' : 'var(--signal-red)'
+        }}>
+          {streamActive ? '● live' : '○ connecting'}
+        </span>
       </div>
 
       {errorMsg ? (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          padding: '20px',
-          borderRadius: '12px',
-          color: '#fca5a5',
+          background: 'var(--signal-red-dim)',
+          border: '1px solid var(--signal-red)',
+          padding: '18px',
+          borderRadius: '6px',
+          color: 'var(--signal-red)',
           textAlign: 'center',
           marginTop: '40px'
         }}>
-          <AlertCircle size={36} style={{ marginBottom: '10px' }} />
-          <p>{errorMsg}</p>
+          <AlertCircle size={32} style={{ marginBottom: '8px' }} />
+          <p style={{ fontSize: '0.85rem' }}>{errorMsg}</p>
         </div>
       ) : (
         <>
-          {/* Positioning Instructions Banner */}
+          {/* Positioning Instructions */}
           <div style={{
-            background: 'rgba(99, 102, 241, 0.12)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
-            borderRadius: '12px',
-            padding: '14px 16px',
-            marginBottom: '16px',
-            fontSize: '0.85rem',
-            lineHeight: 1.4
+            background: 'var(--bg-slate)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '6px',
+            padding: '12px 14px',
+            marginBottom: '14px',
+            fontSize: '0.8rem',
+            lineHeight: 1.5
           }}>
-            <div style={{ fontWeight: 700, color: '#c7d2fe', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Compass size={16} /> Placement Guideline:
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '0.72rem',
+              color: 'var(--amber-watch)',
+              marginBottom: '4px',
+              letterSpacing: '0.04em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <Compass size={14} />
+              PLACEMENT
             </div>
-            <p style={{ color: '#e0e7ff', fontSize: '0.8rem' }}>
-              Prop your phone up at <strong>one arm's length (45° angle)</strong> to the side. Ensure your desk, keyboard, and hands are clearly visible in frame.
+            <p style={{ color: 'var(--chalk-mid)', fontSize: '0.78rem' }}>
+              Prop phone at <strong style={{ color: 'var(--chalk)' }}>arm's length, 45° angle</strong>. Desk, keyboard, and hands must be visible.
             </p>
           </div>
 
-          {/* Camera Video Viewport */}
+          {/* Camera Viewport */}
           <div style={{
             position: 'relative',
             width: '100%',
             flex: 1,
             minHeight: '280px',
-            background: '#000',
-            borderRadius: '14px',
+            background: 'var(--bg-deep)',
+            borderRadius: '6px',
             overflow: 'hidden',
-            border: '1.5px solid rgba(255, 255, 255, 0.1)'
+            border: '1px solid var(--border-subtle)'
           }}>
             <video
               ref={videoRef}
@@ -281,51 +278,53 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
                 objectFit: 'cover'
               }}
             />
-
             {/* Overlay stats */}
             <div style={{
               position: 'absolute',
-              bottom: '12px',
-              left: '12px',
-              right: '12px',
+              bottom: '10px',
+              left: '10px',
+              right: '10px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              background: 'rgba(0, 0, 0, 0.65)',
-              backdropFilter: 'blur(8px)',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              fontSize: '0.75rem'
+              background: 'rgba(13, 15, 23, 0.85)',
+              padding: '6px 10px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-subtle)',
+              fontFamily: 'var(--font-data)',
+              fontSize: '0.68rem'
             }}>
-              <span style={{ color: '#9ca3af' }}>Session: <strong style={{ color: '#fff' }}>{sessionId}</strong></span>
-              <span style={{ color: '#34d399', fontWeight: 600 }}>Frames: {framesSent}</span>
+              <span style={{ color: 'var(--chalk-dim)' }}>
+                {sessionId}
+              </span>
+              <span style={{ color: 'var(--clear-green)' }}>
+                frames: {framesSent}
+              </span>
             </div>
           </div>
 
-          {/* Bottom Controls */}
-          <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
+          {/* Camera Switch */}
+          <div style={{ marginTop: '14px' }}>
             <button
               onClick={() => setFacingMode(prev => prev === 'environment' ? 'user' : 'environment')}
+              className="btn-ghost"
               style={{
-                flex: 1,
-                padding: '12px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                color: '#fff',
-                borderRadius: '10px',
-                fontWeight: 600,
-                fontSize: '0.85rem',
+                width: '100%',
+                padding: '10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '6px',
+                fontSize: '0.8rem'
               }}
             >
-              <RefreshCw size={16} /> Switch Camera ({facingMode === 'environment' ? 'Desk Rear' : 'Front'})
+              <RefreshCw size={14} />
+              Switch to {facingMode === 'environment' ? 'front' : 'rear'} camera
             </button>
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: '12px', color: '#6b7280', fontSize: '0.75rem' }}>
-            🔒 Keep this page open on your phone throughout the exam session.
+          <div style={{ textAlign: 'center', marginTop: '10px', color: 'var(--chalk-dim)', fontSize: '0.72rem', fontFamily: 'var(--font-display)' }}>
+            Keep this page open throughout the exam.
           </div>
         </>
       )}
@@ -349,8 +348,10 @@ export default function App() {
   }
 
   // Session & Navigation States
-  const [step, setStep] = useState('enroll'); // 'enroll' | 'exam' | 'completed'
+  const [step, setStep] = useState('enroll'); // 'enroll' | 'exam' | 'completed' | 'terminated'
   const [session, setSession] = useState(null);
+
+
   const [studentId, setStudentId] = useState(`stu_${Math.floor(1000 + Math.random() * 9000)}`);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -367,7 +368,7 @@ export default function App() {
   const [deskContraband, setDeskContraband] = useState(null);
 
   // Biometric Enrollment States
-  const [faceCaptured, setFaceCaptured] = useState(null); // Data URL
+  const [faceCaptured, setFaceCaptured] = useState(null);
   const [faceBlob, setFaceBlob] = useState(null);
   const [audioRecorded, setAudioRecorded] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -375,7 +376,7 @@ export default function App() {
   const [audioCountdown, setAudioCountdown] = useState(5);
   const [enrollStatus, setEnrollStatus] = useState({ text: '', type: 'idle' });
 
-  // Live Vision AI Proctoring States (MediaPipe + YOLOv8 + 3D Head Pose)
+  // Live Vision AI Proctoring States
   const [aiStatus, setAiStatus] = useState({
     faceCount: 1,
     gazeAway: false,
@@ -396,18 +397,17 @@ export default function App() {
   const blurStartTimeRef = useRef(null);
   const idleTimerRef = useRef(null);
 
-  // Debouncing refs for false-positive reduction
+  // Debouncing refs
   const gazeAwayConsecutiveRef = useRef(0);
   const mouthMovementConsecutiveRef = useRef(0);
   const absentConsecutiveRef = useRef(0);
   const multiplePersonsConsecutiveRef = useRef(0);
 
-  // Detect Electron environment & Fetch LAN Network Info
+  // Detect Electron & Fetch LAN Info
   useEffect(() => {
     if (window.electronAPI) {
       setIsElectron(true);
     }
-
     const fetchNetworkInfo = async () => {
       try {
         const res = await fetch(`${API_BASE}/network-info`);
@@ -422,7 +422,7 @@ export default function App() {
     fetchNetworkInfo();
   }, []);
 
-  // Initialize Camera for Enrollment / Proctoring
+  // Camera init
   const startCamera = async () => {
     try {
       if (streamRef.current) {
@@ -438,7 +438,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Camera access error:', err);
-      setWarningToast('⚠️ Camera access denied. Please grant webcam permissions.');
+      setWarningToast('Camera access denied. Please grant webcam permissions.');
     }
   };
 
@@ -451,7 +451,7 @@ export default function App() {
     };
   }, [step]);
 
-  // Capture Face Snapshot for Biometrics
+  // Face capture
   const captureFaceSnapshot = () => {
     if (!videoRef.current) return;
     const canvas = document.createElement('canvas');
@@ -459,16 +459,14 @@ export default function App() {
     canvas.height = videoRef.current.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     setFaceCaptured(dataUrl);
-
     canvas.toBlob((blob) => {
       setFaceBlob(blob);
     }, 'image/jpeg', 0.9);
   };
 
-  // Record 5-second Audio Voice Sample for SpeechBrain ECAPA-TDNN
+  // Voice recording
   const startVoiceRecording = async () => {
     try {
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -510,14 +508,14 @@ export default function App() {
     }
   };
 
-  // Submit Biometric Registration to Python Flask Engine (POST /enroll)
+  // Biometric enrollment
   const handleBiometricEnrollment = async () => {
     if (!faceBlob || !audioBlob) {
       alert('Please capture both your face snapshot and 5-second voice sample.');
       return;
     }
     setLoading(true);
-    setEnrollStatus({ text: 'Registering FaceNet & ECAPA-TDNN Biometric Embeddings in ChromaDB...', type: 'pending' });
+    setEnrollStatus({ text: 'Registering biometric identity...', type: 'pending' });
 
     try {
       const formData = new FormData();
@@ -532,27 +530,21 @@ export default function App() {
 
       const data = await res.json();
       if (res.ok && data.status === 'success') {
-        setEnrollStatus({ text: '✓ Biometrics Verified & Enrolled Successfully!', type: 'success' });
-        setTimeout(() => {
-          handleStartExam();
-        }, 1200);
+        setEnrollStatus({ text: 'Identity verified. Launching exam...', type: 'success' });
+        setTimeout(() => { handleStartExam(); }, 1200);
       } else {
-        setEnrollStatus({ text: `✓ Biometrics processed. Launching secure exam...`, type: 'success' });
-        setTimeout(() => {
-          handleStartExam();
-        }, 1200);
+        setEnrollStatus({ text: 'Identity processed. Launching exam...', type: 'success' });
+        setTimeout(() => { handleStartExam(); }, 1200);
       }
     } catch (err) {
-      setEnrollStatus({ text: 'AI Server connected. Launching secure exam...', type: 'success' });
-      setTimeout(() => {
-        handleStartExam();
-      }, 1000);
+      setEnrollStatus({ text: 'Connected. Launching exam...', type: 'success' });
+      setTimeout(() => { handleStartExam(); }, 1000);
     } finally {
       setLoading(false);
     }
   };
 
-  // Start Exam Session and Enter Lockdown
+  // Start exam
   const handleStartExam = async () => {
     setLoading(true);
     try {
@@ -566,22 +558,20 @@ export default function App() {
       setStep('exam');
       questionStartTimeRef.current = Date.now();
 
-      // Engage Electron Native Kiosk Lockdown
       if (window.electronAPI?.enterLockdown) {
         await window.electronAPI.enterLockdown();
         setIsLocked(true);
       }
     } catch (err) {
-      alert('Cannot connect to backend server. Make sure http://localhost:4000 is running.');
+      alert('Cannot connect to backend. Make sure http://localhost:4000 is running.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Send Telemetry Event to Backend
+  // Telemetry
   const emitTelemetryEvent = async (type, metadata = {}) => {
     if (!session?.sessionId) return;
-
     const payload = {
       type,
       timestamp: new Date().toISOString(),
@@ -596,11 +586,10 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      
       const logEntry = {
         id: data.eventId || Math.random().toString(),
         type,
-        time: new Date().toLocaleTimeString(),
+        time: new Date().toLocaleTimeString('en-GB'),
         metadata
       };
       setTelemetryLogs(prev => [logEntry, ...prev.slice(0, 15)]);
@@ -609,7 +598,27 @@ export default function App() {
     }
   };
 
-  // Periodic AI Camera Frame Analyzer (MediaPipe Gaze/3D Head Pose + YOLOv8 Contraband)
+  // Listen for forced session termination from Invigilator Admin Hub
+  useEffect(() => {
+    if (step !== 'exam' || !session?.sessionId) return;
+    const checkTerminationInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/sessions/${session.sessionId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'terminated') {
+            setStep('terminated');
+            if (window.electronAPI?.exitLockdown) {
+              window.electronAPI.exitLockdown();
+            }
+          }
+        }
+      } catch (err) {}
+    }, 2000);
+    return () => clearInterval(checkTerminationInterval);
+  }, [step, session]);
+
+  // AI Frame Analysis
   useEffect(() => {
     if (step !== 'exam' || !session) return;
 
@@ -620,6 +629,19 @@ export default function App() {
       canvas.height = 240;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(videoRef.current, 0, 0, 320, 240);
+
+      // Relay live primary webcam frame to backend for Admin Hub view
+      try {
+        const imageBase64 = canvas.toDataURL('image/jpeg', 0.6);
+        fetch(`${API_BASE}/sessions/${session.sessionId}/primary-stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64,
+            studentId: session.studentId || studentId
+          })
+        }).catch(() => {});
+      } catch (e) {}
 
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -644,7 +666,7 @@ export default function App() {
               headPose: analysis.head_pose || { yaw: 0, pitch: 0, roll: 0 }
             });
 
-            // 🎯 Debounced Gaze Away Anomaly (Desk writing is recognized as valid exam work)
+            // Debounced gaze away
             if (analysis.gaze_desk) {
               gazeAwayConsecutiveRef.current = 0;
             } else if (analysis.gaze_away) {
@@ -656,49 +678,49 @@ export default function App() {
                   pitch: analysis.head_pose?.pitch,
                   detail: 'Sustained gaze deviation from exam screen'
                 });
-                setWarningToast('⚠️ Please focus your gaze on the exam window.');
+                setWarningToast('Please focus your gaze on the exam window.');
               }
             } else {
               gazeAwayConsecutiveRef.current = 0;
             }
 
-            // 🎯 Debounced Mouth Movement / Talking (Requires 3 consecutive ticks)
+            // Debounced mouth movement
             if (analysis.mouth_movement) {
               mouthMovementConsecutiveRef.current += 1;
               if (mouthMovementConsecutiveRef.current === 3) {
                 emitTelemetryEvent('MOUTH_MOVEMENT', { model: 'MediaPipe_Lips', detail: 'Sustained vocalization/lip movement' });
-                setWarningToast('⚠️ Please maintain complete silence during the exam.');
+                setWarningToast('Please maintain silence during the exam.');
               }
             } else {
               mouthMovementConsecutiveRef.current = 0;
             }
 
-            // 🎯 Absent Screen Check
+            // Absent detection
             if (analysis.absent) {
               absentConsecutiveRef.current += 1;
               if (absentConsecutiveRef.current === 2) {
                 emitTelemetryEvent('ABSENT_SCREEN', { model: 'MediaPipe_FaceCount', detail: 'Candidate left camera view' });
-                setWarningToast('⚠️ Face not detected in camera frame!');
+                setWarningToast('Face not detected in camera frame.');
               }
             } else {
               absentConsecutiveRef.current = 0;
             }
 
-            // 🎯 Multiple Persons Detection (Requires 2 consecutive ticks = 4s)
+            // Multiple persons
             if (analysis.multiple_persons) {
               multiplePersonsConsecutiveRef.current += 1;
               if (multiplePersonsConsecutiveRef.current === 2) {
                 emitTelemetryEvent('MULTIPLE_PERSONS', { model: 'MediaPipe_FaceCount', count: analysis.face_count });
-                setWarningToast('⚠️ Multiple people detected in camera frame!');
+                setWarningToast('Multiple people detected in camera frame.');
               }
             } else {
               multiplePersonsConsecutiveRef.current = 0;
             }
 
-            // 🎯 Instant Contraband (YOLOv8)
+            // Instant contraband
             if (analysis.contraband_detected) {
               emitTelemetryEvent(`CONTRABAND (${analysis.contraband_detected})`, { model: 'YOLOv8n', item: analysis.contraband_detected });
-              setWarningToast(`⚠️ Prohibited object detected: ${analysis.contraband_detected}`);
+              setWarningToast(`Prohibited object detected: ${analysis.contraband_detected}`);
             }
           }
         } catch (err) {
@@ -713,7 +735,7 @@ export default function App() {
     };
   }, [step, session]);
 
-  // Poll for Mobile Secondary Camera Feed
+  // Secondary camera polling
   useEffect(() => {
     const currentSessionId = session?.sessionId || `sess_${studentId}`;
     const checkSecondaryStream = async () => {
@@ -727,7 +749,7 @@ export default function App() {
           }
           if (data.analysis?.contraband_detected) {
             setDeskContraband(data.analysis.contraband_detected);
-            setWarningToast(`⚠️ Desk Alert: ${data.analysis.contraband_detected} detected on desk!`);
+            setWarningToast(`Desk: ${data.analysis.contraband_detected} detected`);
           } else {
             setDeskContraband(null);
           }
@@ -743,7 +765,7 @@ export default function App() {
     };
   }, [session, studentId]);
 
-  // OS & Browser Telemetry Listeners
+  // OS & Browser telemetry
   useEffect(() => {
     if (step !== 'exam' || !session) return;
 
@@ -753,7 +775,7 @@ export default function App() {
         if (eventData.type === 'os_window_blur') {
           blurStartTimeRef.current = Date.now();
           emitTelemetryEvent('focus_lost', { source: 'os_window', details: eventData.details });
-          setWarningToast('⚠️ OS Window Unfocused: invigilator notified of desktop defocus.');
+          setWarningToast('Window unfocused — activity recorded.');
         } else if (eventData.type === 'os_window_focus') {
           if (blurStartTimeRef.current) {
             const durationMs = Date.now() - blurStartTimeRef.current;
@@ -767,7 +789,7 @@ export default function App() {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         emitTelemetryEvent('tab_switch', { direction: 'away', fromTab: 'exam', toTab: 'unknown' });
-        setWarningToast('⚠️ Window/Tab unfocused: Activity recorded in telemetry stream.');
+        setWarningToast('Tab unfocused — activity recorded.');
       } else {
         emitTelemetryEvent('tab_switch', { direction: 'return', fromTab: 'unknown', toTab: 'exam' });
       }
@@ -812,15 +834,12 @@ export default function App() {
     };
   }, [step, session]);
 
-  // Exam Countdown Timer
+  // Countdown
   useEffect(() => {
     if (step !== 'exam' || !session) return;
     const interval = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleFinishExam();
-          return 0;
-        }
+        if (prev <= 1) { handleFinishExam(); return 0; }
         return prev - 1;
       });
     }, 1000);
@@ -862,46 +881,127 @@ export default function App() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // QR Code URL for Mobile Secondary Camera (Use secure ngrok HTTPS URL if active, otherwise fallback to local IP)
-  const mobilePairingUrl = networkInfo.ngrokUrl 
+  // QR Code URL
+  const mobilePairingUrl = networkInfo.ngrokUrl
     ? `${networkInfo.ngrokUrl}/?mode=mobile&sessionId=${session?.sessionId || `sess_${studentId}`}&studentId=${studentId}&host=${networkInfo.ngrokUrl.replace(/^https?:\/\//, '')}`
     : `http://${networkInfo.localIp}:${networkInfo.studentPort}/?mode=mobile&sessionId=${session?.sessionId || `sess_${studentId}`}&studentId=${studentId}&host=${networkInfo.localIp}:4000`;
 
   // ═══════════════════════════════════════════════════════════════════════
-  // 1. BIOMETRIC ENROLLMENT & DUAL-CAM QR ONBOARDING SCREEN
+  // 1. TERMINATED VIEW
+  // ═══════════════════════════════════════════════════════════════════════
+  if (step === 'terminated') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-deep)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}>
+        <div className="panel-slate" style={{
+          maxWidth: '560px',
+          width: '100%',
+          padding: '36px',
+          textAlign: 'center',
+          border: '1.5px solid var(--signal-red)',
+          boxShadow: '0 0 40px rgba(224, 78, 67, 0.2)'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            background: 'rgba(224, 78, 67, 0.15)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px auto'
+          }}>
+            <AlertTriangle size={32} color="var(--signal-red)" />
+          </div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--signal-red)', marginBottom: '10px', letterSpacing: '0.04em' }}>
+            EXAM FORCEFULLY TERMINATED
+          </h2>
+          <p style={{ color: 'var(--chalk)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '24px' }}>
+            Your proctored exam session has been forcefully terminated by the invigilator due to detected security, biometric, or behavioral anomalies.
+          </p>
+          <div className="panel-raised" style={{ padding: '14px', fontSize: '0.8rem', color: 'var(--chalk-mid)', fontFamily: 'var(--font-data)', marginBottom: '24px', textAlign: 'left' }}>
+            <div><strong style={{ color: 'var(--chalk)' }}>SESSION:</strong> {session?.sessionId || 'N/A'}</div>
+            <div><strong style={{ color: 'var(--chalk)' }}>STUDENT ID:</strong> {studentId}</div>
+            <div><strong style={{ color: 'var(--chalk)' }}>STATUS:</strong> <span style={{ color: 'var(--signal-red)', fontWeight: 700 }}>TERMINATED</span></div>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="btn-ghost"
+            style={{ width: '100%', padding: '12px', borderColor: 'var(--border-subtle)', cursor: 'pointer' }}
+          >
+            Close Assessment Session
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 2. SEAT CHECK-IN (Enrollment)
   // ═══════════════════════════════════════════════════════════════════════
   if (step === 'enroll') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-        <div className="glass-panel" style={{ maxWidth: '1080px', width: '100%', padding: '36px' }}>
-          
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-deep)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '28px 20px'
+      }}>
+        <div className="panel-slate" style={{ maxWidth: '1040px', width: '100%', padding: '32px 36px' }}>
+
           {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <div style={{ display: 'inline-flex', padding: '14px', background: 'rgba(99, 102, 241, 0.12)', borderRadius: '16px', marginBottom: '14px' }}>
-              <ShieldCheck size={40} color="#6366f1" />
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.1rem',
+              color: 'var(--chalk)',
+              letterSpacing: '0.08em',
+              marginBottom: '6px'
+            }}>
+              SEAT CHECK-IN
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '6px' }}>Candidate Biometric & Dual-Camera Setup</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '720px', margin: '0 auto' }}>
-              Register reference biometric embeddings and pair your mobile phone as a secondary workspace camera for end-to-end assessment integrity.
+            <p style={{ color: 'var(--chalk-mid)', fontSize: '0.85rem', maxWidth: '560px', lineHeight: 1.5 }}>
+              Verify your identity to begin. Capture your face and voice, then pair your phone as a desk camera.
             </p>
           </div>
 
-          {/* 3-Step Setup Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '28px' }}>
-            
-            {/* Step 1: Face Capture */}
-            <div style={{ background: '#0e1422', padding: '18px', borderRadius: '14px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+          {/* 3-Step Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' }}>
+
+            {/* Step 1: Face */}
+            <div className="panel-raised" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.9rem' }}>
-                  <Camera size={16} color="var(--accent)" />
-                  <span>1. Face Reference</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.72rem', color: 'var(--chalk-dim)', letterSpacing: '0.06em' }}>01</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', color: 'var(--chalk)', letterSpacing: '0.02em' }}>FACE</span>
                 </div>
-                {faceCaptured && <span style={{ color: 'var(--success)', fontSize: '0.75rem', fontWeight: 700 }}>✓ Ready</span>}
+                {faceCaptured && (
+                  <span style={{ color: 'var(--clear-green)', fontSize: '0.72rem', fontFamily: 'var(--font-data)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <Check size={12} /> ready
+                  </span>
+                )}
               </div>
 
-              <div style={{ position: 'relative', width: '100%', height: '180px', background: '#000', borderRadius: '10px', overflow: 'hidden', marginBottom: '12px' }}>
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                height: '170px',
+                background: 'var(--bg-deep)',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                marginBottom: '12px',
+                border: `1px solid ${faceCaptured ? 'var(--clear-green-dim)' : 'var(--border-subtle)'}`
+              }}>
                 {faceCaptured ? (
-                  <img src={faceCaptured} alt="Face Reference" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={faceCaptured} alt="Face reference" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
                 )}
@@ -909,135 +1009,139 @@ export default function App() {
 
               <button
                 onClick={captureFaceSnapshot}
-                style={{
-                  marginTop: 'auto',
-                  width: '100%',
-                  padding: '10px',
-                  background: faceCaptured ? 'rgba(255, 255, 255, 0.08)' : 'var(--accent)',
-                  color: '#fff',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.85rem'
-                }}
+                className={faceCaptured ? "btn-ghost" : "btn-primary"}
+                style={{ marginTop: 'auto', width: '100%', padding: '9px', fontSize: '0.8rem' }}
               >
-                {faceCaptured ? 'Retake Photo' : 'Capture Face'}
+                {faceCaptured ? 'Retake' : 'Capture face'}
               </button>
             </div>
 
-            {/* Step 2: Voice Vector */}
-            <div style={{ background: '#0e1422', padding: '18px', borderRadius: '14px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+            {/* Step 2: Voice */}
+            <div className="panel-raised" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.9rem' }}>
-                  <Mic size={16} color="var(--accent)" />
-                  <span>2. Voice Signature</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.72rem', color: 'var(--chalk-dim)', letterSpacing: '0.06em' }}>02</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', color: 'var(--chalk)', letterSpacing: '0.02em' }}>VOICE</span>
                 </div>
-                {audioRecorded && <span style={{ color: 'var(--success)', fontSize: '0.75rem', fontWeight: 700 }}>✓ Ready</span>}
+                {audioRecorded && (
+                  <span style={{ color: 'var(--clear-green)', fontSize: '0.72rem', fontFamily: 'var(--font-data)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <Check size={12} /> ready
+                  </span>
+                )}
               </div>
 
               <div style={{
-                height: '180px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                borderRadius: '10px',
+                height: '170px',
+                background: 'var(--bg-deep)',
+                borderRadius: '4px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '16px',
+                padding: '14px',
                 textAlign: 'center',
                 marginBottom: '12px',
-                border: '1px dashed var(--border)'
+                border: '1px solid var(--border-subtle)'
               }}>
-                <Volume2 size={32} color={isRecordingAudio ? 'var(--danger)' : 'var(--text-muted)'} className={isRecordingAudio ? 'animate-pulse' : ''} />
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '10px', lineHeight: 1.3 }}>
+                <Volume2
+                  size={28}
+                  color={isRecordingAudio ? 'var(--signal-red)' : 'var(--chalk-dim)'}
+                  style={{ transition: 'color 0.2s ease', marginBottom: '10px' }}
+                />
+                <p style={{ fontSize: '0.75rem', color: 'var(--chalk-mid)', lineHeight: 1.4 }}>
                   {isRecordingAudio
-                    ? `Recording (${audioCountdown}s)... Please read: "I confirm my identity for Proctora assessment."`
+                    ? `Recording (${audioCountdown}s)... Say: "I confirm my identity."`
                     : audioRecorded
-                    ? 'Voice sample ready for ECAPA-TDNN 192-d extraction.'
-                    : 'Speak clearly for 5 seconds to generate voice biometric signature.'}
+                    ? 'Voice signature captured.'
+                    : 'Speak clearly for 5 seconds.'}
                 </p>
               </div>
 
               <button
                 onClick={startVoiceRecording}
                 disabled={isRecordingAudio}
-                style={{
-                  marginTop: 'auto',
-                  width: '100%',
-                  padding: '10px',
-                  background: isRecordingAudio ? 'var(--danger)' : audioRecorded ? 'rgba(255, 255, 255, 0.08)' : '#3b82f6',
-                  color: '#fff',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.85rem'
-                }}
+                className={isRecordingAudio ? "btn-danger" : audioRecorded ? "btn-ghost" : "btn-primary"}
+                style={{ marginTop: 'auto', width: '100%', padding: '9px', fontSize: '0.8rem' }}
               >
-                {isRecordingAudio ? `Recording (${audioCountdown}s)...` : audioRecorded ? 'Re-record Voice' : 'Start 5s Voice Sample'}
+                {isRecordingAudio ? `Recording (${audioCountdown}s)...` : audioRecorded ? 'Re-record' : 'Record voice'}
               </button>
             </div>
 
-            {/* Step 3: Phone QR Dual-Camera Setup */}
-            <div style={{ background: '#0e1422', padding: '18px', borderRadius: '14px', border: `1px solid ${secondaryCamActive ? 'var(--success)' : 'var(--border)'}`, display: 'flex', flexDirection: 'column' }}>
+            {/* Step 3: Desk Cam */}
+            <div className="panel-raised" style={{
+              padding: '18px',
+              border: `1px solid ${secondaryCamActive ? 'rgba(59, 166, 118, 0.25)' : 'var(--border-mid)'}`,
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.9rem' }}>
-                  <Smartphone size={16} color={secondaryCamActive ? 'var(--success)' : 'var(--accent)'} />
-                  <span>3. Phone Desk Cam</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.72rem', color: 'var(--chalk-dim)', letterSpacing: '0.06em' }}>03</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', color: 'var(--chalk)', letterSpacing: '0.02em' }}>DESK CAM</span>
                 </div>
                 <span style={{
-                  color: secondaryCamActive ? 'var(--success)' : 'var(--text-muted)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700
+                  fontFamily: 'var(--font-data)',
+                  fontSize: '0.72rem',
+                  color: secondaryCamActive ? 'var(--clear-green)' : 'var(--chalk-dim)'
                 }}>
-                  {secondaryCamActive ? '✓ Connected' : 'Waiting for scan'}
+                  {secondaryCamActive ? '● paired' : '○ waiting'}
                 </span>
               </div>
 
               <div style={{
-                height: '180px',
-                background: '#fff',
-                borderRadius: '10px',
+                height: '170px',
+                background: 'var(--bg-light)',
+                borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '12px',
+                padding: '10px',
                 marginBottom: '12px',
                 position: 'relative'
               }}>
                 {secondaryCamPreview ? (
-                  <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '6px', overflow: 'hidden' }}>
-                    <img src={secondaryCamPreview} alt="Desk Stream" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '4px', overflow: 'hidden' }}>
+                    <img src={secondaryCamPreview} alt="Desk feed" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <div style={{
                       position: 'absolute',
-                      top: '6px',
-                      right: '6px',
-                      background: 'rgba(16, 185, 129, 0.85)',
+                      top: '5px',
+                      right: '5px',
+                      background: 'var(--clear-green)',
                       color: '#fff',
-                      fontSize: '0.65rem',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontWeight: 700
+                      fontSize: '0.6rem',
+                      padding: '2px 5px',
+                      borderRadius: '3px',
+                      fontFamily: 'var(--font-data)',
+                      fontWeight: 600
                     }}>
-                      ● Desk Live
+                      live
                     </div>
                   </div>
                 ) : (
-                  <QRCodeSVG value={mobilePairingUrl} size={150} level="M" />
+                  <QRCodeSVG value={mobilePairingUrl} size={140} level="M" fgColor="#0D0F17" bgColor="#F0EDE4" />
                 )}
               </div>
 
-              <div style={{ marginTop: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.3 }}>
-                {secondaryCamActive 
-                  ? '🟢 Mobile phone connected at arm\'s length!' 
-                  : `Scan with phone on Wi-Fi (${networkInfo.localIp})`}
+              <div style={{ marginTop: 'auto', fontSize: '0.72rem', color: 'var(--chalk-dim)', textAlign: 'center', lineHeight: 1.3, fontFamily: 'var(--font-data)' }}>
+                {secondaryCamActive
+                  ? 'Phone connected'
+                  : `Scan with phone (${networkInfo.localIp})`}
               </div>
             </div>
-
           </div>
 
-          {/* Student Info & Submit Button */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: '16px', alignItems: 'flex-end' }}>
+          {/* Student ID & Submit */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: '14px', alignItems: 'flex-end' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                STUDENT IDENTIFIER / ROLL NO
+              <label style={{
+                display: 'block',
+                fontSize: '0.68rem',
+                color: 'var(--chalk-dim)',
+                marginBottom: '6px',
+                fontFamily: 'var(--font-display)',
+                letterSpacing: '0.06em'
+              }}>
+                STUDENT ID
               </label>
               <input
                 type="text"
@@ -1045,12 +1149,9 @@ export default function App() {
                 onChange={(e) => setStudentId(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
-                  background: '#0e1422',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '0.95rem'
+                  padding: '10px 14px',
+                  fontSize: '0.9rem',
+                  fontFamily: 'var(--font-display)'
                 }}
               />
             </div>
@@ -1058,76 +1159,82 @@ export default function App() {
             <button
               onClick={handleBiometricEnrollment}
               disabled={loading || !faceBlob || !audioBlob}
+              className="btn-primary"
               style={{
                 width: '100%',
-                padding: '13px',
-                background: (!faceBlob || !audioBlob) ? 'rgba(255, 255, 255, 0.1)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                borderRadius: '8px',
-                boxShadow: (faceBlob && audioBlob) ? '0 4px 20px var(--accent-glow)' : 'none',
-                opacity: (!faceBlob || !audioBlob) ? 0.6 : 1,
-                cursor: (!faceBlob || !audioBlob) ? 'not-allowed' : 'pointer'
+                padding: '12px',
+                fontSize: '0.85rem',
+                opacity: (!faceBlob || !audioBlob) ? 0.35 : 1
               }}
             >
-              {loading ? 'Registering...' : 'Enroll & Start Exam'}
+              {loading ? 'Verifying...' : 'Begin exam'}
             </button>
           </div>
 
           {enrollStatus.text && (
             <div style={{
               marginTop: '16px',
-              padding: '12px',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
+              padding: '10px 14px',
+              borderRadius: '4px',
+              fontSize: '0.82rem',
               textAlign: 'center',
-              fontWeight: 600,
-              background: enrollStatus.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-              color: enrollStatus.type === 'success' ? 'var(--success)' : 'var(--accent)',
-              border: `1px solid ${enrollStatus.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+              fontWeight: 500,
+              background: enrollStatus.type === 'success' ? 'var(--clear-green-dim)' : 'var(--amber-watch-dim)',
+              color: enrollStatus.type === 'success' ? 'var(--clear-green)' : 'var(--amber-watch)',
+              border: `1px solid ${enrollStatus.type === 'success' ? 'rgba(59, 166, 118, 0.25)' : 'rgba(212, 148, 58, 0.25)'}`
             }}>
               {enrollStatus.text}
             </div>
           )}
-
         </div>
       </div>
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // 2. EXAM COMPLETED SCREEN
+  // 2. EXAM COMPLETED
   // ═══════════════════════════════════════════════════════════════════════
   if (step === 'completed') {
     const answeredCount = Object.keys(answers).length;
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-        <div className="glass-panel" style={{ maxWidth: '540px', width: '100%', padding: '40px', textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', padding: '16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '20px', marginBottom: '20px' }}>
-            <Award size={52} color="#10b981" />
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-deep)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}>
+        <div className="panel-slate" style={{ maxWidth: '480px', width: '100%', padding: '36px 32px', textAlign: 'center' }}>
+          <div style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1rem',
+            color: 'var(--clear-green)',
+            letterSpacing: '0.08em',
+            marginBottom: '8px'
+          }}>
+            SUBMITTED
           </div>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '10px' }}>Exam Submitted Successfully!</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '0.95rem' }}>
-            Lockdown released. Your biometric streams and assessment answers have been finalized.
+          <p style={{ color: 'var(--chalk-mid)', marginBottom: '24px', fontSize: '0.85rem', lineHeight: 1.5 }}>
+            Exam session complete. Your responses and monitoring data have been recorded.
           </p>
 
-          <div style={{ background: '#0e1422', padding: '20px', borderRadius: '12px', marginBottom: '24px', textAlign: 'left' }}>
+          <div className="panel-raised" style={{ padding: '16px 20px', marginBottom: '24px', textAlign: 'left' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Session ID:</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{session?.sessionId}</span>
+              <span style={{ color: 'var(--chalk-mid)', fontSize: '0.8rem' }}>Session</span>
+              <span style={{ fontFamily: 'var(--font-data)', fontSize: '0.78rem', color: 'var(--chalk)' }}>{session?.sessionId}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Student ID:</span>
-              <span style={{ fontWeight: 600 }}>{studentId}</span>
+              <span style={{ color: 'var(--chalk-mid)', fontSize: '0.8rem' }}>Student</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', color: 'var(--chalk)' }}>{studentId}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Completed Answers:</span>
-              <span style={{ fontWeight: 600, color: 'var(--success)' }}>{answeredCount} of {SAMPLE_QUESTIONS.length}</span>
+              <span style={{ color: 'var(--chalk-mid)', fontSize: '0.8rem' }}>Answered</span>
+              <span style={{ fontFamily: 'var(--font-data)', fontSize: '0.78rem', color: 'var(--clear-green)' }}>{answeredCount} / {SAMPLE_QUESTIONS.length}</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button
               onClick={async () => {
                 if (window.electronAPI?.quitApp) {
@@ -1139,22 +1246,19 @@ export default function App() {
                   window.close();
                 }
               }}
-              className="btn btn-primary"
+              className="btn-danger"
               style={{
                 width: '100%',
-                padding: '14px',
-                fontSize: '1rem',
-                fontWeight: 700,
+                padding: '11px',
+                fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)'
+                gap: '6px'
               }}
             >
-              <LogOut size={18} />
-              <span>Quit & Close Application</span>
+              <LogOut size={15} />
+              Quit application
             </button>
 
             <button
@@ -1173,334 +1277,381 @@ export default function App() {
                 setEnrollStatus({ text: '', type: 'idle' });
                 setStep('enroll');
               }}
-              className="btn btn-outline"
+              className="btn-ghost"
               style={{
                 width: '100%',
-                padding: '12px',
-                fontSize: '0.9rem',
-                fontWeight: 600,
+                padding: '10px',
+                fontSize: '0.82rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '6px'
               }}
             >
-              <RotateCcw size={16} />
-              <span>Start Another Exam Session</span>
+              <RotateCcw size={14} />
+              Start another session
             </button>
           </div>
-
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '20px' }}>
-            The invigilator review dashboard will now display this session in the review queue.
-          </p>
         </div>
       </div>
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // 3. ACTIVE PROCTORED EXAM (With Live Video + Dual-Cam Feed + AI Badges)
+  // 3. ACTIVE EXAM SESSION
   // ═══════════════════════════════════════════════════════════════════════
   const currentQ = SAMPLE_QUESTIONS[currentIndex];
   const selectedOption = answers[currentQ.id];
+  const hasProctorViolation = aiStatus.gazeAway || aiStatus.mouthMovement || aiStatus.contraband || deskContraband || aiStatus.multiplePersons;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Top Header */}
+    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
+
+      {/* Header — minimal during exam */}
       <header style={{
-        padding: '14px 28px',
-        borderBottom: '1px solid var(--border)',
+        padding: '10px 24px',
+        borderBottom: '1px solid var(--border-subtle)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        background: 'rgba(11, 15, 25, 0.95)',
-        backdropFilter: 'blur(10px)',
+        background: 'var(--bg-deep)',
         position: 'sticky',
         top: 0,
         zIndex: 50
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '1.2rem', color: '#fff' }}>
-            <ShieldCheck color="#6366f1" size={24} />
-            <span>PROCTORA DESKTOP</span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <span style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '0.78rem',
+            color: 'var(--chalk-mid)',
+            letterSpacing: '0.06em'
+          }}>
+            EXAM SESSION
+          </span>
           <div className="telemetry-indicator">
             <div className="pulse-dot" />
-            <span>{isLocked ? 'Kiosk Lockdown Active' : 'AI Biometric Watchdog Active'}</span>
+            <span>{isLocked ? 'Kiosk locked' : 'Monitoring active'}</span>
           </div>
-
           {secondaryCamActive && (
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 10px',
-              background: 'rgba(16, 185, 129, 0.12)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '9999px',
-              color: 'var(--success)',
-              fontSize: '0.75rem',
-              fontWeight: 600
+            <span style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: '0.68rem',
+              color: 'var(--clear-green)'
             }}>
-              <Smartphone size={13} />
-              <span>Phone Desk Cam Connected</span>
-            </div>
+              ● desk cam
+            </span>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#1e1b4b',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: '1px solid #4338ca',
-            fontFamily: 'var(--font-mono)',
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {/* Timer */}
+          <span style={{
+            fontFamily: 'var(--font-display)',
             fontSize: '1rem',
-            fontWeight: 700,
-            color: '#c7d2fe'
+            color: timeLeft < 300 ? 'var(--signal-red)' : 'var(--amber-watch)',
+            letterSpacing: '0.04em'
           }}>
-            <Clock size={18} />
-            <span>{formatTime(timeLeft)}</span>
-          </div>
+            {formatTime(timeLeft)}
+          </span>
 
           <button
             onClick={handleFinishExam}
-            style={{
-              padding: '8px 18px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
-              color: '#f87171',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '0.875rem'
-            }}
+            className="btn-danger"
+            style={{ padding: '6px 14px', fontSize: '0.78rem' }}
           >
-            Finish Exam
+            End exam
           </button>
         </div>
       </header>
 
       {/* Main Exam Area */}
-      <main style={{ flex: 1, maxWidth: '1440px', width: '100%', margin: '0 auto', padding: '24px', display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' }}>
-        
-        {/* Left Side: Question Pane */}
-        <section className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
+      <main style={{
+        flex: 1,
+        maxWidth: '1400px',
+        width: '100%',
+        margin: '0 auto',
+        padding: '20px',
+        display: 'grid',
+        gridTemplateColumns: '1fr 340px',
+        gap: '20px'
+      }}>
+
+        {/* Left: Question */}
+        <section className="panel-slate" style={{ padding: '30px 28px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Question {currentIndex + 1} of {SAMPLE_QUESTIONS.length}
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '0.72rem',
+              color: 'var(--chalk-mid)',
+              letterSpacing: '0.06em'
+            }}>
+              QUESTION {currentIndex + 1} / {SAMPLE_QUESTIONS.length}
             </span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              {selectedOption !== undefined ? 'Answered' : 'Not answered'}
+            <span style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: '0.72rem',
+              color: selectedOption !== undefined ? 'var(--clear-green)' : 'var(--chalk-dim)'
+            }}>
+              {selectedOption !== undefined ? '● answered' : '○ pending'}
             </span>
           </div>
 
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 700, lineHeight: 1.5, marginBottom: '28px' }}>
+          <h2 style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '1.2rem',
+            fontWeight: 500,
+            lineHeight: 1.65,
+            color: 'var(--chalk)',
+            marginBottom: '28px'
+          }}>
             {currentQ.text}
           </h2>
 
           {/* Options */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '32px' }}>
             {currentQ.options.map((opt, idx) => {
               const isSelected = selectedOption === idx;
               return (
                 <div
                   key={idx}
+                  className={`option-card ${isSelected ? 'option-card--selected' : ''}`}
                   onClick={() => handleSelectOption(idx)}
-                  style={{
-                    padding: '16px 20px',
-                    borderRadius: '12px',
-                    border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                    background: isSelected ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSelectOption(idx)}
+                  role="radio"
+                  aria-checked={isSelected}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '26px',
+                      height: '26px',
                       borderRadius: '50%',
-                      border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                      border: `2px solid ${isSelected ? 'var(--chalk)' : 'var(--border-strong)'}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      color: isSelected ? 'var(--accent)' : 'var(--text-muted)',
-                      background: isSelected ? '#312e81' : 'transparent'
+                      fontSize: '0.78rem',
+                      fontFamily: 'var(--font-display)',
+                      color: isSelected ? 'var(--bg-deep)' : 'var(--chalk-mid)',
+                      background: isSelected ? 'var(--chalk)' : 'transparent',
+                      transition: 'all 0.12s ease',
+                      flexShrink: 0
                     }}>
                       {String.fromCharCode(65 + idx)}
                     </div>
-                    <span style={{ fontSize: '0.95rem', fontWeight: isSelected ? 600 : 400 }}>{opt}</span>
+                    <span style={{
+                      fontSize: '0.9rem',
+                      fontWeight: isSelected ? 500 : 400,
+                      color: 'var(--chalk)',
+                      lineHeight: 1.4
+                    }}>
+                      {opt}
+                    </span>
                   </div>
-                  {isSelected && <CheckCircle2 size={20} color="#6366f1" />}
+                  {isSelected && <CheckCircle2 size={18} color="var(--chalk)" />}
                 </div>
               );
             })}
           </div>
 
-          {/* Bottom Actions */}
-          <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Navigation */}
+          <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)' }}>
             <button
               onClick={() => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); }}
               disabled={currentIndex === 0}
+              className="btn-ghost"
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                color: currentIndex === 0 ? 'var(--text-muted)' : '#fff',
-                opacity: currentIndex === 0 ? 0.5 : 1,
-                fontWeight: 600
+                gap: '6px',
+                padding: '8px 16px',
+                fontSize: '0.82rem'
               }}
             >
-              <ArrowLeft size={16} /> Previous
+              <ArrowLeft size={14} /> Previous
             </button>
 
             {currentIndex < SAMPLE_QUESTIONS.length - 1 ? (
               <button
                 onClick={() => { if (currentIndex < SAMPLE_QUESTIONS.length - 1) setCurrentIndex(currentIndex + 1); }}
+                className="btn-primary"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 24px',
-                  borderRadius: '8px',
-                  background: 'var(--accent)',
-                  color: '#fff',
-                  fontWeight: 700
+                  gap: '6px',
+                  padding: '8px 18px',
+                  fontSize: '0.82rem'
                 }}
               >
-                Next <ArrowRight size={16} />
+                Next <ArrowRight size={14} />
               </button>
             ) : (
               <button
                 onClick={handleFinishExam}
+                className="btn-primary"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 24px',
-                  borderRadius: '8px',
-                  background: 'var(--success)',
-                  color: '#fff',
-                  fontWeight: 700
+                  gap: '6px',
+                  padding: '8px 18px',
+                  fontSize: '0.82rem'
                 }}
               >
-                Submit Exam <Send size={16} />
+                Submit <Send size={14} />
               </button>
             )}
           </div>
         </section>
 
-        {/* Right Side: Dual Live Camera Stream + AI Diagnostics + Question Grid */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          
-          {/* Dual Camera Panel (Primary Face + Secondary Desk View) */}
-          <div className="glass-panel" style={{ padding: '16px', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                <Video size={15} color="var(--accent)" />
-                <span>PRIMARY & DESK CAMERA FEEDS</span>
-              </div>
-              <span style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 700 }}>● DUAL ACTIVE</span>
+        {/* Right: Camera + Nav + Activity */}
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+          {/* Camera Feeds */}
+          <div className="panel-slate" style={{ padding: '14px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px'
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '0.68rem',
+                color: 'var(--chalk-mid)',
+                letterSpacing: '0.06em'
+              }}>
+                CAMERAS
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: '0.65rem',
+                color: hasProctorViolation ? 'var(--signal-red)' : 'var(--clear-green)'
+              }}>
+                {hasProctorViolation ? '● flagged' : '● clear'}
+              </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              
-              {/* Camera 1: Primary Webcam (Face) */}
-              <div style={{ position: 'relative', width: '100%', height: '150px', background: '#000', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {/* Primary webcam */}
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                height: '120px',
+                background: 'var(--bg-deep)',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                border: `1.5px solid ${
+                  aiStatus.gazeAway || aiStatus.mouthMovement || aiStatus.contraband || aiStatus.multiplePersons
+                    ? 'var(--signal-red)'
+                    : 'var(--border-subtle)'
+                }`,
+                transition: 'border-color 0.2s ease'
+              }}>
                 <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
-                
-                {/* AI Overlay Badges */}
-                <div style={{ position: 'absolute', bottom: '6px', left: '6px', right: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+
+                {/* AI status tags */}
+                <div style={{ position: 'absolute', bottom: '4px', left: '4px', right: '4px', display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
                   <span style={{
-                    fontSize: '0.6rem',
-                    padding: '2px 5px',
-                    borderRadius: '4px',
-                    fontWeight: 700,
-                    background: aiStatus.gazeAway 
-                      ? 'rgba(239, 68, 68, 0.9)' 
-                      : aiStatus.gazeDesk 
-                        ? 'rgba(59, 130, 246, 0.9)' 
-                        : 'rgba(16, 185, 129, 0.9)',
+                    fontSize: '0.58rem',
+                    padding: '1px 4px',
+                    borderRadius: '2px',
+                    fontFamily: 'var(--font-data)',
+                    fontWeight: 600,
+                    background: aiStatus.gazeAway
+                      ? 'var(--signal-red)'
+                      : aiStatus.gazeDesk
+                        ? 'var(--clear-green)'
+                        : 'rgba(59, 166, 118, 0.8)',
                     color: '#fff'
                   }}>
-                    {aiStatus.gazeAway 
-                      ? 'Gaze: Away ⚠️' 
-                      : aiStatus.gazeDesk 
-                        ? 'Gaze: Desk Focus ✍️' 
-                        : 'Gaze: Screen Focus 🟢'}
+                    {aiStatus.gazeAway ? 'away' : aiStatus.gazeDesk ? 'desk' : 'screen'}
                   </span>
 
-                  <span style={{
-                    fontSize: '0.6rem',
-                    padding: '2px 5px',
-                    borderRadius: '4px',
-                    fontWeight: 700,
-                    background: aiStatus.mouthMovement ? 'rgba(239, 68, 68, 0.9)' : 'rgba(16, 185, 129, 0.9)',
-                    color: '#fff'
-                  }}>
-                    {aiStatus.mouthMovement ? 'Mouth: Speaking ⚠️' : 'Mouth: Silent 🟢'}
-                  </span>
+                  {aiStatus.mouthMovement && (
+                    <span style={{
+                      fontSize: '0.58rem',
+                      padding: '1px 4px',
+                      borderRadius: '2px',
+                      fontFamily: 'var(--font-data)',
+                      fontWeight: 600,
+                      background: 'var(--signal-red)',
+                      color: '#fff'
+                    }}>
+                      speaking
+                    </span>
+                  )}
 
                   {aiStatus.contraband && (
                     <span style={{
-                      fontSize: '0.6rem',
-                      padding: '2px 5px',
-                      borderRadius: '4px',
-                      fontWeight: 700,
-                      background: 'rgba(239, 68, 68, 0.95)',
+                      fontSize: '0.58rem',
+                      padding: '1px 4px',
+                      borderRadius: '2px',
+                      fontFamily: 'var(--font-data)',
+                      fontWeight: 600,
+                      background: 'var(--signal-red)',
                       color: '#fff'
                     }}>
-                      Object: {aiStatus.contraband} ⚠️
+                      {aiStatus.contraband}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Camera 2: Secondary Phone Desk Camera */}
-              <div style={{ position: 'relative', width: '100%', height: '150px', background: '#000', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${secondaryCamActive ? 'rgba(16, 185, 129, 0.4)' : 'var(--border)'}` }}>
+              {/* Secondary desk cam */}
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                height: '120px',
+                background: 'var(--bg-deep)',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                border: `1.5px solid ${
+                  deskContraband
+                    ? 'var(--signal-red)'
+                    : secondaryCamActive
+                      ? 'rgba(59, 166, 118, 0.25)'
+                      : 'var(--border-subtle)'
+                }`,
+                transition: 'border-color 0.2s ease'
+              }}>
                 {secondaryCamPreview ? (
-                  <img src={secondaryCamPreview} alt="Phone Desk Stream" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={secondaryCamPreview} alt="Desk feed" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '0.7rem', textAlign: 'center', padding: '8px' }}>
-                    <Smartphone size={22} style={{ marginBottom: '6px', opacity: 0.6 }} />
-                    <span>{secondaryCamActive ? 'Loading desk stream...' : 'Waiting for phone stream...'}</span>
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--chalk-dim)', fontSize: '0.65rem', textAlign: 'center', padding: '6px', fontFamily: 'var(--font-display)' }}>
+                    <Smartphone size={16} style={{ marginBottom: '4px', opacity: 0.5 }} />
+                    <span>{secondaryCamActive ? 'Loading...' : 'No desk cam'}</span>
                   </div>
                 )}
                 <div style={{
                   position: 'absolute',
-                  top: '6px',
-                  left: '6px',
-                  background: deskContraband ? 'rgba(239, 68, 68, 0.95)' : 'rgba(0, 0, 0, 0.7)',
-                  color: deskContraband ? '#fff' : secondaryCamActive ? '#34d399' : '#9ca3af',
-                  fontSize: '0.6rem',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontWeight: 700
+                  top: '4px',
+                  left: '4px',
+                  fontFamily: 'var(--font-data)',
+                  fontSize: '0.55rem',
+                  padding: '1px 4px',
+                  borderRadius: '2px',
+                  fontWeight: 600,
+                  background: deskContraband ? 'var(--signal-red)' : 'rgba(13, 15, 23, 0.75)',
+                  color: deskContraband ? '#fff' : secondaryCamActive ? 'var(--clear-green)' : 'var(--chalk-dim)'
                 }}>
-                  {deskContraband ? `⚠️ Desk: ${deskContraband}` : secondaryCamActive ? '● Desk (Live)' : '○ Desk Cam'}
+                  {deskContraband ? deskContraband : secondaryCamActive ? '● desk' : '○ desk'}
                 </div>
               </div>
-
             </div>
           </div>
 
-          {/* Question Grid */}
-          <div className="glass-panel" style={{ padding: '16px' }}>
-            <h4 style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-muted)' }}>
-              QUESTION NAVIGATION
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+          {/* Question Navigator */}
+          <div className="panel-slate" style={{ padding: '14px' }}>
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '0.68rem',
+              color: 'var(--chalk-mid)',
+              letterSpacing: '0.06em',
+              marginBottom: '10px'
+            }}>
+              QUESTIONS
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
               {SAMPLE_QUESTIONS.map((q, idx) => {
                 const isCurrent = currentIndex === idx;
                 const isAnswered = answers[q.id] !== undefined;
@@ -1509,21 +1660,26 @@ export default function App() {
                     key={q.id}
                     onClick={() => { setCurrentIndex(idx); }}
                     style={{
-                      height: '36px',
-                      borderRadius: '6px',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      background: isCurrent 
-                        ? 'var(--accent)' 
-                        : isAnswered 
-                        ? 'rgba(16, 185, 129, 0.2)' 
-                        : 'rgba(255, 255, 255, 0.05)',
-                      border: isCurrent 
-                        ? '2px solid #fff' 
-                        : isAnswered 
-                        ? '1px solid var(--success)' 
-                        : '1px solid var(--border)',
-                      color: isAnswered && !isCurrent ? 'var(--success)' : '#fff'
+                      height: '32px',
+                      borderRadius: '4px',
+                      fontWeight: 500,
+                      fontSize: '0.78rem',
+                      fontFamily: 'var(--font-display)',
+                      background: isCurrent
+                        ? 'var(--chalk)'
+                        : isAnswered
+                        ? 'var(--clear-green-dim)'
+                        : 'var(--bg-raised)',
+                      border: isCurrent
+                        ? 'none'
+                        : isAnswered
+                        ? '1px solid rgba(59, 166, 118, 0.25)'
+                        : '1px solid var(--border-subtle)',
+                      color: isCurrent
+                        ? 'var(--bg-deep)'
+                        : isAnswered
+                        ? 'var(--clear-green)'
+                        : 'var(--chalk-dim)'
                     }}
                   >
                     {idx + 1}
@@ -1533,57 +1689,63 @@ export default function App() {
             </div>
           </div>
 
-          {/* Real-time Telemetry & AI Stream Feed */}
-          <div className="glass-panel" style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-              <Activity size={15} color="var(--accent)" />
-              <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                TELEMETRY & AI EVENT STREAM
-              </h4>
+          {/* Activity Log */}
+          <div className="panel-slate" style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '0.68rem',
+              color: 'var(--chalk-mid)',
+              letterSpacing: '0.06em',
+              marginBottom: '8px'
+            }}>
+              ACTIVITY LOG
             </div>
 
             <div style={{
               flex: 1,
               overflowY: 'auto',
-              maxHeight: '180px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.725rem',
+              maxHeight: '160px',
+              fontFamily: 'var(--font-data)',
+              fontSize: '0.65rem',
               display: 'flex',
               flexDirection: 'column',
-              gap: '6px'
+              gap: '4px'
             }}>
               {telemetryLogs.length === 0 ? (
-                <span style={{ color: 'var(--text-muted)' }}>AI & Telemetry watchdog active.</span>
+                <span style={{ color: 'var(--chalk-dim)' }}>Monitoring active.</span>
               ) : (
-                telemetryLogs.map((log) => (
-                  <div key={log.id} style={{
-                    padding: '6px 8px',
-                    background: '#090d16',
-                    borderRadius: '6px',
-                    borderLeft: `3px solid ${
-                      log.type.includes('GAZE') || log.type.includes('CONTRABAND') || log.type.includes('MISMATCH') || log.type.includes('focus')
-                        ? 'var(--warning)' 
-                        : 'var(--accent)'
-                    }`
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
-                      <span style={{ fontWeight: 600, color: '#fff' }}>{log.type}</span>
-                      <span>{log.time}</span>
+                telemetryLogs.map((log) => {
+                  const isViolation = log.type.includes('CONTRABAND') || log.type.includes('MISMATCH') || log.type.includes('MULTIPLE') || log.type.includes('ABSENT');
+                  const isWarning = log.type.includes('GAZE') || log.type.includes('MOUTH') || log.type.includes('focus');
+                  const entryClass = `activity-entry ${isViolation ? 'activity-entry--critical' : isWarning ? 'activity-entry--warning' : ''}`;
+                  return (
+                    <div key={log.id} className={entryClass}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--chalk-mid)' }}>
+                        <span style={{
+                          fontWeight: 600,
+                          color: isViolation ? 'var(--signal-red)' : isWarning ? 'var(--amber-watch)' : 'var(--chalk)'
+                        }}>
+                          {log.type}
+                        </span>
+                        <span>{log.time}</span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
-
         </aside>
       </main>
 
-      {/* Floating Warning Toast */}
+      {/* Warning Toast */}
       {warningToast && (
-        <div className="toast-warn">
-          <AlertTriangle size={20} color="var(--warning)" />
-          <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{warningToast}</span>
+        <div className={`toast-warn ${warningToast.includes('Multiple') || warningToast.includes('Prohibited') || warningToast.includes('prohibited') ? 'critical' : ''}`}>
+          <AlertTriangle
+            size={18}
+            color={warningToast.includes('Multiple') || warningToast.includes('Prohibited') || warningToast.includes('prohibited') ? 'var(--signal-red)' : 'var(--amber-watch)'}
+          />
+          <span style={{ fontSize: '0.82rem', fontWeight: 400 }}>{warningToast}</span>
         </div>
       )}
     </div>

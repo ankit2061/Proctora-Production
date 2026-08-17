@@ -4,7 +4,7 @@
   "description": "Multi-Modal AI-Powered Remote Exam Proctoring System with Dual-Camera Real-Time Verification",
   "private": true,
   "scripts": {
-    "install:all": "npm --prefix backend install && npm --prefix frontend-student install && npm --prefix frontend-admin install",
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend-student install && npm --prefix frontend-admin install",
     "ai:server": "cd ai-engine && python3 api.py",
     "backend": "npm --prefix backend run dev",
     "student:web": "npm --prefix frontend-student run dev",
@@ -12,9 +12,12 @@
     "admin": "npm --prefix frontend-admin run dev",
     "build:student": "npm --prefix frontend-student run build",
     "build:admin": "npm --prefix frontend-admin run build",
-    "dev": "concurrently -n \"AI,BACKEND,STUDENT,ADMIN\" -c \"yellow,cyan,blue,magenta\" \"npm run ai:server\" \"npm run backend\" \"npm run student:desktop\" \"npm run admin\""
+    "dev": "npx concurrently -n \"AI,BACKEND,STUDENT,ADMIN\" -c \"yellow,cyan,blue,magenta\" \"npm run ai:server\" \"npm run backend\" \"npm run student:desktop\" \"npm run admin\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "date-fns": "2.30.0"
   }
 }

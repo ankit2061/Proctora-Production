@@ -68,7 +68,12 @@ graph TD
 - **Python**: 3.11 or 3.12
 - **npm** or **bun**
 
-### 2. Installation
+---
+
+### 2. Option A: Run All Microservices Concurrently (One Command)
+
+If you want to spin up the entire ecosystem at once:
+
 ```bash
 # 1. Install all Node.js dependencies across subprojects
 npm run install:all
@@ -77,19 +82,90 @@ npm run install:all
 cd ai-engine
 pip install -r requirements.txt
 cd ..
-```
 
-### 3. Run the Entire System
-```bash
-# Runs AI Engine + Backend + Student Desktop Kiosk + Admin Dashboard concurrently
+# 3. Launch all services concurrently
 npm run dev
 ```
 
-- **Student Desktop Kiosk**: Launches in Fullscreen Lockdown
-- **Student Mobile Pairing**: `http://<YOUR_LOCAL_IP>:5173/?mode=mobile&session=<SESSION_ID>`
-- **Admin Dashboard**: `http://localhost:5174`
-- **Backend API**: `http://localhost:4000`
-- **Python AI Engine**: `http://localhost:5001`
+---
+
+### 3. Option B: Running Individual Services (Terminal by Terminal)
+
+For modular testing, debugging, or running specific components individually, open separate terminal windows for each service:
+
+#### 🧠 A. Python AI Engine Microservice (YOLOv8 + MediaPipe + DINOv2)
+```bash
+cd ai-engine
+
+# (Optional) Create & activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the Flask AI server (Port 5001)
+python3 api.py
+```
+> **Runs on:** `http://localhost:5001`
+
+---
+
+#### ⚙️ B. Node.js Backend Server (REST API & SQLite)
+```bash
+cd backend
+
+# Install dependencies
+npm install
+
+# Start backend server in development mode (with --watch)
+npm run dev
+```
+> **Runs on:** `http://localhost:4000`
+
+---
+
+#### 💻 C. Student Desktop Kiosk App (Electron + React)
+```bash
+cd frontend-student
+
+# Install dependencies
+npm install
+
+# Option C1: Run full Electron Kiosk Desktop App locally (Vite + Electron)
+npm run electron:dev
+
+# Option C2: Run Web Client mode in browser only
+npm run dev
+```
+> **Student Web App:** `http://localhost:5173`  
+> **Mobile Desk Cam Pairing URL:** `http://<YOUR_LOCAL_IP>:5173/?mode=mobile&session=<SESSION_ID>`
+
+---
+
+#### 🛡️ D. Invigilator Admin Dashboard (React)
+```bash
+cd frontend-admin
+
+# Install dependencies
+npm install
+
+# Start Admin Dashboard
+npm run dev
+```
+> **Runs on:** `http://localhost:5174`
+
+---
+
+### 4. Service Summary & Ports
+
+| Component | Directory | Local Command | Default URL / Port |
+|---|---|---|---|
+| **Python AI Engine** | `ai-engine/` | `python3 api.py` | `http://localhost:5001` |
+| **Node Backend** | `backend/` | `npm run dev` | `http://localhost:4000` |
+| **Student Web Client** | `frontend-student/` | `npm run dev` | `http://localhost:5173` |
+| **Student Electron App** | `frontend-student/` | `npm run electron:dev` | Desktop App Window |
+| **Admin Dashboard** | `frontend-admin/` | `npm run dev` | `http://localhost:5174` |
 
 ---
 

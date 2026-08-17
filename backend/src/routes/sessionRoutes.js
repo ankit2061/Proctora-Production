@@ -6,7 +6,78 @@ import { scoreSession } from '../../../detection-engine/src/index.js';
 
 const router = express.Router();
 const latestSecondaryFrames = new Map();
+const latestPrimaryFrames = new Map();
 const PYTHON_AI_URL = process.env.PYTHON_AI_URL || 'http://127.0.0.1:5001';
+
+/**
+ * POST /api/sessions/:sessionId/primary-stream
+ * Ingests primary webcam camera frame from student client
+ */
+router.post('/sessions/:sessionId/primary-stream', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { imageBase64, studentId, timestamp = new Date().toISOString() } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Missing imageBase64' });
+    }
+
+    const entry = {
+      imageBase64,
+      updatedAt: timestamp
+    };
+
+    latestPrimaryFrames.set(sessionId, entry);
+    latestPrimaryFrames.set('latest_active', entry);
+
+    if (studentId) {
+      latestPrimaryFrames.set(studentId, entry);
+      latestPrimaryFrames.set(`sess_${studentId}`, entry);
+    }
+
+    res.json({ received: true, updatedAt: timestamp });
+  } catch (error) {
+    console.error('Error handling primary stream:', error);
+    res.status(500).json({ error: 'server_error', message: error.message });
+  }
+});
+
+/**
+ * GET /api/sessions/:sessionId/primary-stream
+ * Retrieves the latest primary webcam snapshot and active status
+ */
+router.get('/sessions/:sessionId/primary-stream', async (req, res) => {
+  const { sessionId } = req.params;
+  let frameData = latestPrimaryFrames.get(sessionId);
+
+  if (!frameData) {
+    try {
+      const dbSession = await getQuery('SELECT student_id FROM sessions WHERE id = ?', [sessionId]);
+      if (dbSession && dbSession.student_id) {
+        frameData = latestPrimaryFrames.get(dbSession.student_id) || latestPrimaryFrames.get(`sess_${dbSession.student_id}`);
+      }
+    } catch (e) {}
+  }
+
+  if (!frameData) {
+    const latest = latestPrimaryFrames.get('latest_active');
+    if (latest && (Date.now() - new Date(latest.updatedAt).getTime()) < 15000) {
+      frameData = latest;
+    }
+  }
+
+  if (!frameData) {
+    return res.json({ active: false, imageBase64: null, updatedAt: null });
+  }
+
+  const isRecent = (Date.now() - new Date(frameData.updatedAt).getTime()) < 15000;
+  res.json({
+    active: isRecent,
+    imageBase64: frameData.imageBase64,
+    updatedAt: frameData.updatedAt
+  });
+});
+
 
 router.get('/network-info', async (req, res) => {
   const interfaces = os.networkInterfaces();
@@ -346,6 +417,13 @@ router.post('/sessions/:sessionId/finish', async (req, res) => {
  */
 router.get('/admin/sessions', async (req, res) => {
   try {
+    // Auto-cleanup stale sessions (no activity for > 1 hour)
+    const staleThreshold = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    await runQuery(
+      `UPDATE sessions SET status = 'completed', completed_at = updated_at WHERE status = 'active' AND updated_at < ?`,
+      [staleThreshold]
+    );
+
     const { status, riskMin, riskMax, examId } = req.query;
 
     let sql = `SELECT * FROM sessions WHERE 1=1`;
@@ -388,6 +466,48 @@ router.get('/admin/sessions', async (req, res) => {
     res.json({ items });
   } catch (error) {
     console.error('Error fetching admin sessions:', error);
+    res.status(500).json({ error: 'server_error', message: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/sessions/:sessionId/terminate
+ * Force end / terminate a suspicious student exam session
+ */
+router.post('/admin/sessions/:sessionId/terminate', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { reason = 'Terminated by Invigilator due to suspicious activity' } = req.body;
+    const now = new Date().toISOString();
+
+    // 1. Update session status to 'terminated'
+    await runQuery(
+      `UPDATE sessions SET status = 'terminated', explanation = ?, completed_at = ?, updated_at = ? WHERE id = ?`,
+      [reason, now, now, sessionId]
+    );
+
+    // 2. Log termination event
+    const eventId = `evt_${uuidv4().substring(0, 8)}`;
+    await runQuery(
+      `INSERT INTO events (id, session_id, type, source, timestamp, metadata) VALUES (?, ?, ?, ?, ?, ?)`,
+      [eventId, sessionId, 'EXAM_FORCE_TERMINATED', 'invigilator_admin', now, JSON.stringify({ reason })]
+    );
+
+    // 3. Log high-severity flag
+    const flagId = `flag_${uuidv4().substring(0, 8)}`;
+    await runQuery(
+      `INSERT INTO flags (id, session_id, note, severity, created_at) VALUES (?, ?, ?, 'high', ?)`,
+      [flagId, sessionId, `[FORCE TERMINATION] ${reason}`, now]
+    );
+
+    res.json({
+      sessionId,
+      status: 'terminated',
+      reason,
+      terminatedAt: now
+    });
+  } catch (error) {
+    console.error('Error terminating session:', error);
     res.status(500).json({ error: 'server_error', message: error.message });
   }
 });
