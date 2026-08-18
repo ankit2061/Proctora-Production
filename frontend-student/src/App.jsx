@@ -29,6 +29,7 @@ import {
   Zap,
   Radio
 } from 'lucide-react';
+import proctoraLogo from './assets/logo.png';
 
 const getInitialApiBase = () => {
   if (typeof window !== 'undefined') {
@@ -1213,7 +1214,7 @@ export default function App() {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <img src="/logo.png" alt="Proctora Logo" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+              <img src={proctoraLogo} alt="Proctora Logo" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
               <div>
                 <div style={{
                   fontFamily: 'var(--font-display)',
@@ -1757,7 +1758,7 @@ export default function App() {
         zIndex: 50
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src="/logo.png" alt="Proctora Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+          <img src={proctoraLogo} alt="Proctora Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
           <span style={{
             fontFamily: 'var(--font-display)',
             fontSize: '0.78rem',

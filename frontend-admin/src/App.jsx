@@ -23,6 +23,7 @@ import {
   Settings,
   Sparkles
 } from 'lucide-react';
+import proctoraLogo from './assets/logo.png';
 
 const getInitialApiRoot = () => {
   if (typeof window !== 'undefined') {
@@ -554,7 +555,7 @@ export default function App() {
       }}>
         {/* Left: Identity + Roll Call */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <img src="/logo.png" alt="Proctora Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+          <img src={proctoraLogo} alt="Proctora Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
             <span style={{
               fontFamily: 'var(--font-display)',
