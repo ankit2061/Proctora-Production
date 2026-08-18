@@ -1,18 +1,19 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Menu, session } = require('electron');
 const path = require('path');
 
 let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
+    width: 1280,
+    height: 850,
     minWidth: 1024,
-    minHeight: 720,
+    minHeight: 700,
     center: true,
-    fullscreen: true,
-    kiosk: true,
-    frame: false,
+    fullscreen: false,
+    kiosk: false,
+    frame: true,
+    title: 'Proctora Student Assessment Station',
     autoHideMenuBar: true,
     backgroundColor: '#0b0f19',
     webPreferences: {
@@ -20,15 +21,13 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      devTools: process.env.NODE_ENV === 'development'
+      devTools: process.env.NODE_ENV === 'development' || !app.isPackaged
     }
   });
 
-  mainWindow.maximize();
-  mainWindow.setFullScreen(true);
   Menu.setApplicationMenu(null);
 
-  const isDev = process.env.NODE_ENV === 'development' || process.defaultApp || /[\\/]electron-prebuilt[\\/]/.test(process.execPath) || /[\\/]electron[\\/]/.test(process.execPath);
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
   if (isDev) {
     const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173';
@@ -65,20 +64,22 @@ function createWindow() {
 
 // IPC Handlers for Lockdown & Kiosk Mode
 ipcMain.handle('enter-lockdown', () => {
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.setFullScreen(true);
     mainWindow.setKiosk(true);
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
 
     // Register blocking shortcuts
-    globalShortcut.register('CommandOrControl+R', () => {});
-    globalShortcut.register('CommandOrControl+Shift+R', () => {});
-    globalShortcut.register('CommandOrControl+W', () => {});
-    globalShortcut.register('Alt+Tab', () => {});
-    globalShortcut.register('CommandOrControl+Shift+I', () => {});
-    globalShortcut.register('F11', () => {});
-    globalShortcut.register('F12', () => {});
-    globalShortcut.register('F5', () => {});
+    try {
+      globalShortcut.register('CommandOrControl+R', () => {});
+      globalShortcut.register('CommandOrControl+Shift+R', () => {});
+      globalShortcut.register('CommandOrControl+W', () => {});
+      globalShortcut.register('Alt+Tab', () => {});
+      globalShortcut.register('CommandOrControl+Shift+I', () => {});
+      globalShortcut.register('F11', () => {});
+      globalShortcut.register('F12', () => {});
+      globalShortcut.register('F5', () => {});
+    } catch (e) {}
 
     return { locked: true };
   }
@@ -86,7 +87,7 @@ ipcMain.handle('enter-lockdown', () => {
 });
 
 ipcMain.handle('exit-lockdown', () => {
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.setKiosk(false);
     mainWindow.setFullScreen(false);
     mainWindow.setAlwaysOnTop(false);
@@ -97,7 +98,7 @@ ipcMain.handle('exit-lockdown', () => {
 });
 
 ipcMain.handle('quit-app', () => {
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.setKiosk(false);
     mainWindow.setFullScreen(false);
     mainWindow.setAlwaysOnTop(false);
@@ -117,6 +118,18 @@ ipcMain.handle('get-system-info', () => {
 });
 
 app.whenReady().then(() => {
+  // Grant camera & microphone permissions automatically
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    if (permission === 'media' || permission === 'camera' || permission === 'microphone' || permission === 'notifications') {
+      return callback(true);
+    }
+    callback(false);
+  });
+
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+    return permission === 'media' || permission === 'camera' || permission === 'microphone' || permission === 'notifications';
+  });
+
   createWindow();
 
   app.on('activate', () => {
