@@ -9,7 +9,8 @@
     "electron": "electron .",
     "electron:dev": "concurrently -k \"vite --port 5173\" \"wait-on tcp:5173 && electron .\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint ."
   },
   "dependencies": {
     "lucide-react": "^0.363.0",

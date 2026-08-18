@@ -26,7 +26,10 @@ from typing import Optional, Tuple, Callable, Dict, Any
 import sys
 import cv2
 import numpy as np
-import sounddevice as sd
+try:
+    import sounddevice as sd
+except (ImportError, OSError, Exception):
+    sd = None
 import chromadb
 import scipy.spatial.distance as dist
 
@@ -673,6 +676,9 @@ class ExamProctor:
 
     def _silent_capture_audio(self, duration: int, for_monitor: bool = False) -> Optional[np.ndarray]:
         """Record `duration` seconds of 16 kHz mono audio."""
+        if sd is None:
+            logger.warning("Monitor: sounddevice not available on this system.")
+            return None
         try:
             audio = sd.rec(
                 frames=duration * AUDIO_SAMPLE_RATE,

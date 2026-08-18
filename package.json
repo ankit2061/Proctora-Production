@@ -12,10 +12,20 @@
     "admin": "npm --prefix frontend-admin run dev",
     "build:student": "npm --prefix frontend-student run build",
     "build:admin": "npm --prefix frontend-admin run build",
-    "dev": "npx concurrently -n \"AI,BACKEND,STUDENT,ADMIN\" -c \"yellow,cyan,blue,magenta\" \"npm run ai:server\" \"npm run backend\" \"npm run student:desktop\" \"npm run admin\""
+    "dev": "npx concurrently -n \"AI,BACKEND,STUDENT,ADMIN\" -c \"yellow,cyan,blue,magenta\" \"npm run ai:server\" \"npm run backend\" \"npm run student:desktop\" \"npm run admin\"",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^8.2.2",
+    "eslint": "^10.8.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.4",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6"
   },
   "dependencies": {
     "date-fns": "2.30.0"

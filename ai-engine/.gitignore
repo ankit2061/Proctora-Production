@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+._*
+.DS_Store
+temp_uploads/
+proctor_logs.json
+proctor_system.log
+lbfmodel.yaml
+proctor_db/
+pretrained_models/
+*.pt
+*.task
+*.ckpt
+*.bin

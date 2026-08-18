@@ -24,12 +24,13 @@ import {
   RotateCcw
 } from 'lucide-react';
 
-const API_BASE = window.location.origin.includes('localhost')
-  ? 'http://localhost:4000/api'
-  : `${window.location.origin}/api`;
-const AI_API_BASE = window.location.origin.includes('localhost')
-  ? 'http://localhost:4000/api/ai'
-  : `${window.location.origin}/api/ai`;
+const ENV_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : null;
+const API_BASE = ENV_BASE
+  ? (ENV_BASE.endsWith('/api') ? ENV_BASE : `${ENV_BASE}/api`)
+  : (window.location.origin.includes('localhost') ? 'http://localhost:4000/api' : `${window.location.origin}/api`);
+const AI_API_BASE = ENV_BASE
+  ? (ENV_BASE.endsWith('/api') ? `${ENV_BASE}/ai` : `${ENV_BASE}/api/ai`)
+  : (window.location.origin.includes('localhost') ? 'http://localhost:4000/api/ai' : `${window.location.origin}/api/ai`);
 
 const SAMPLE_QUESTIONS = [
   {
