@@ -18,11 +18,31 @@ import {
   Wifi,
   Play,
   CheckCircle,
-  RotateCcw
+  RotateCcw,
+  Trash2,
+  Settings,
+  Sparkles
 } from 'lucide-react';
 
-const ENV_API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : null;
-const API_ROOT = ENV_API_URL || (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') ? 'http://localhost:4000' : window.location.origin);
+const getInitialApiRoot = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('proctora_admin_api_root');
+    if (saved) return saved.replace(/\/$/, '');
+  }
+
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '');
+  }
+
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:4000';
+  }
+
+  // Production Render Fallback
+  return 'https://proctora-production.onrender.com';
+};
+
+const API_ROOT = getInitialApiRoot();
 const API_BASE = API_ROOT.endsWith('/api') ? API_ROOT : `${API_ROOT}/api`;
 const HEALTH_URL = `${API_ROOT.replace(/\/api$/, '')}/health`;
 
@@ -230,23 +250,30 @@ export default function App() {
   const checkBackendHealth = async () => {
     const startTime = Date.now();
     try {
-      const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(4000) });
+      const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(10000) });
       if (res.ok) {
         const data = await res.json();
         setBackendLatency(Date.now() - startTime);
         setBackendStatus('online');
         setServerDetails(data);
         return true;
-      } else {
-        if (!isWakingUp) setBackendStatus('offline');
-        return false;
       }
-    } catch (err) {
-      if (!isWakingUp) {
-        setBackendStatus('offline');
+    } catch (err) {}
+
+    // Fallback: check /api/admin/sessions if /health timed out or failed
+    try {
+      const res2 = await fetch(`${API_BASE}/admin/sessions`, { signal: AbortSignal.timeout(10000) });
+      if (res2.ok) {
+        setBackendLatency(Date.now() - startTime);
+        setBackendStatus('online');
+        return true;
       }
-      return false;
+    } catch (err2) {}
+
+    if (!isWakingUp) {
+      setBackendStatus('offline');
     }
+    return false;
   };
 
   // Wake up sleeping backend (e.g. Render 15-minute inactivity spin-down)
@@ -265,7 +292,7 @@ export default function App() {
 
     const attemptWake = async () => {
       try {
-        const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(8000) });
+        const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(10000) });
         if (res.ok) {
           const data = await res.json();
           setBackendStatus('online');
@@ -284,7 +311,7 @@ export default function App() {
     // Immediate attempt
     const success = await attemptWake();
     if (!success) {
-      // Retry every 3 seconds for up to 70 seconds (handles Render cold start)
+      // Retry every 3 seconds for up to 75 seconds (handles Render cold start)
       wakingIntervalRef.current = setInterval(async () => {
         const isUp = await attemptWake();
         if (isUp) {
@@ -327,14 +354,58 @@ export default function App() {
 
   // Fetch all sessions
   const fetchSessions = async () => {
+    const startTime = Date.now();
     try {
       let url = `${API_BASE}/admin/sessions`;
       if (statusFilter) url += `?status=${statusFilter}`;
       const res = await fetch(url);
-      const data = await res.json();
-      setSessions(data.items || []);
+      if (res.ok) {
+        const data = await res.json();
+        setSessions(data.items || []);
+        // Automatically sync online status on successful session load
+        setBackendStatus('online');
+        setBackendLatency(Date.now() - startTime);
+      } else {
+        if (!isWakingUp) setBackendStatus('offline');
+      }
     } catch (err) {
       console.error('Failed to load sessions:', err);
+      if (!isWakingUp) setBackendStatus('offline');
+    }
+  };
+
+  // Clean up stale or inactive sessions
+  const handleCleanupSessions = async (mode = 'stale') => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/sessions/cleanup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode })
+      });
+      if (res.ok) {
+        fetchSessions();
+      }
+    } catch (err) {
+      console.error('Failed to cleanup sessions:', err);
+    }
+  };
+
+  // Delete / Dismiss a specific test session
+  const handleDeleteSession = async (sessionIdToDelete, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`Remove desk ${sessionIdToDelete} from Watch Floor?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/admin/sessions/${sessionIdToDelete}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        if (selectedSessionId === sessionIdToDelete) {
+          setSelectedSessionId(null);
+        }
+        fetchSessions();
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err);
     }
   };
 
@@ -624,40 +695,65 @@ export default function App() {
             {/* Search + Filter Strip */}
             <div style={{
               display: 'flex',
-              gap: '12px',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: '18px',
-              alignItems: 'center'
+              gap: '12px',
+              flexWrap: 'wrap'
             }}>
-              <div style={{ position: 'relative', flex: 1, maxWidth: '340px' }}>
-                <Search size={14} color="var(--chalk-dim)" style={{ position: 'absolute', left: '10px', top: '10px' }} />
-                <input
-                  type="text"
-                  placeholder="Search desk ID or student..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, maxWidth: '520px' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search size={14} color="var(--chalk-dim)" style={{ position: 'absolute', left: '10px', top: '10px' }} />
+                  <input
+                    type="text"
+                    placeholder="Search desk ID or student..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px 8px 32px',
+                      fontSize: '0.8rem',
+                      fontFamily: 'var(--font-display)'
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
                   style={{
-                    width: '100%',
-                    padding: '8px 10px 8px 32px',
+                    padding: '8px 14px',
                     fontSize: '0.8rem',
+                    cursor: 'pointer',
                     fontFamily: 'var(--font-display)'
                   }}
-                />
+                >
+                  <option value="">All desks</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="terminated">Terminated</option>
+                </select>
               </div>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{
-                  padding: '8px 14px',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-display)'
-                }}
-              >
-                <option value="">All desks</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-              </select>
+              {/* Desk Management Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleCleanupSessions('stale')}
+                  className="btn-ghost"
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '0.72rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  title="Mark all abandoned/stale test sessions as completed"
+                >
+                  <Sparkles size={12} />
+                  Clean Inactive Desks
+                </button>
+              </div>
             </div>
 
             {/* Tile Grid */}
@@ -688,18 +784,45 @@ export default function App() {
                         onKeyDown={(e) => e.key === 'Enter' && handleSelectSession(s.sessionId)}
                         role="button"
                         aria-label={`Focus desk ${s.studentId}, risk low`}
+                        style={{ position: 'relative' }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
-                          <span className="sev-dot sev-dot--low" />
+                          <span
+                            className="sev-dot sev-dot--low"
+                            style={{
+                              background: s.isLive ? 'var(--clear-green)' : 'var(--chalk-dim)',
+                              boxShadow: s.isLive ? '0 0 6px var(--clear-green)' : 'none'
+                            }}
+                            title={s.isLive ? 'Live dual-camera streaming' : 'Inactive / no stream'}
+                          />
                           <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', color: 'var(--chalk)' }}>
                             {s.studentId}
                           </span>
                           <span style={{ fontFamily: 'var(--font-data)', fontSize: '0.68rem', color: 'var(--chalk-dim)' }}>
                             {s.sessionId}
                           </span>
+                          <span style={{
+                            fontFamily: 'var(--font-data)',
+                            fontSize: '0.62rem',
+                            padding: '1px 5px',
+                            borderRadius: '3px',
+                            background: s.isLive ? 'rgba(59,166,118,0.15)' : 'rgba(255,255,255,0.05)',
+                            color: s.isLive ? 'var(--clear-green)' : 'var(--chalk-dim)'
+                          }}>
+                            {s.isLive ? '● Live' : s.status}
+                          </span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <RiskDial score={s.riskScore || 0} size={36} />
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSession(s.sessionId, e)}
+                            className="btn-ghost"
+                            style={{ padding: '4px', color: 'var(--chalk-dim)', opacity: 0.6 }}
+                            title="Delete / Remove desk"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                           <ChevronRight size={14} color="var(--chalk-dim)" />
                         </div>
                       </div>
@@ -716,17 +839,32 @@ export default function App() {
                       onKeyDown={(e) => e.key === 'Enter' && handleSelectSession(s.sessionId)}
                       role="button"
                       aria-label={`Focus desk ${s.studentId}, risk ${sev}`}
+                      style={{ position: 'relative' }}
                     >
                       {/* Tile header: student + status */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                          <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'var(--chalk)', marginBottom: '2px' }}>
-                            {s.studentId}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                            <span
+                              style={{
+                                width: 7, height: 7, borderRadius: '50%',
+                                background: s.isLive ? 'var(--clear-green)' : 'var(--chalk-dim)',
+                                boxShadow: s.isLive ? '0 0 6px var(--clear-green)' : 'none'
+                              }}
+                            />
+                            <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'var(--chalk)' }}>
+                              {s.studentId}
+                            </div>
                           </div>
-                          <div style={{ fontFamily: 'var(--font-data)', fontSize: '0.68rem', color: 'var(--chalk-dim)' }}>
-                            {s.sessionId}
-                            <span style={{ marginLeft: '8px', color: s.status === 'active' ? 'var(--amber-watch)' : 'var(--chalk-dim)' }}>
-                              {s.status}
+                          <div style={{ fontFamily: 'var(--font-data)', fontSize: '0.68rem', color: 'var(--chalk-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>{s.sessionId}</span>
+                            <span style={{
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              background: s.isLive ? 'rgba(59,166,118,0.15)' : 'rgba(255,255,255,0.05)',
+                              color: s.isLive ? 'var(--clear-green)' : 'var(--chalk-dim)'
+                            }}>
+                              {s.isLive ? 'Live Stream' : s.status}
                             </span>
                           </div>
                         </div>
@@ -750,16 +888,27 @@ export default function App() {
                         <span style={{ fontFamily: 'var(--font-data)', fontSize: '0.68rem', color: 'var(--chalk-dim)' }}>
                           {s.examId}
                         </span>
-                        <span style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: '0.68rem',
-                          color: 'var(--chalk-mid)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          Focus desk <ChevronRight size={12} />
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSession(s.sessionId, e)}
+                            className="btn-ghost"
+                            style={{ padding: '3px 5px', color: 'var(--chalk-dim)', opacity: 0.6 }}
+                            title="Delete / Remove desk"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                          <span style={{
+                            fontFamily: 'var(--font-display)',
+                            fontSize: '0.68rem',
+                            color: 'var(--chalk-mid)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            Drilldown <ChevronRight size={12} />
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );

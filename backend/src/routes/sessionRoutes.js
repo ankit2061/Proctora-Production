@@ -439,12 +439,12 @@ router.post('/sessions/:sessionId/finish', async (req, res) => {
 
 /**
  * GET /api/admin/sessions
- * List all sessions with score filters
+ * List all sessions with score filters and live streaming activity indicator
  */
 router.get('/admin/sessions', async (req, res) => {
   try {
-    // Auto-cleanup stale sessions (no activity for > 1 hour)
-    const staleThreshold = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    // Auto-cleanup stale inactive sessions (no telemetry/frames for > 15 minutes)
+    const staleThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     await runQuery(
       `UPDATE sessions SET status = 'completed', completed_at = updated_at WHERE status = 'active' AND updated_at < ?`,
       [staleThreshold]
@@ -476,22 +476,79 @@ router.get('/admin/sessions', async (req, res) => {
 
     const sessions = await allQuery(sql, params);
 
-    const items = sessions.map(s => ({
-      sessionId: s.id,
-      studentId: s.student_id,
-      examId: s.exam_id,
-      status: s.status,
-      riskScore: s.risk_score,
-      signals: s.signals ? JSON.parse(s.signals) : [],
-      explanation: s.explanation,
-      startedAt: s.started_at,
-      updatedAt: s.updated_at,
-      completedAt: s.completed_at
-    }));
+    const items = sessions.map(s => {
+      const pFrame = latestPrimaryFrames.get(s.id);
+      const sFrame = latestSecondaryFrames.get(s.id);
+      const isLive = Boolean(
+        s.status === 'active' && (
+          (pFrame && (Date.now() - new Date(pFrame.updatedAt).getTime()) < 25000) ||
+          (sFrame && (Date.now() - new Date(sFrame.updatedAt).getTime()) < 25000) ||
+          ((Date.now() - new Date(s.updated_at).getTime()) < 30000)
+        )
+      );
+
+      return {
+        sessionId: s.id,
+        studentId: s.student_id,
+        examId: s.exam_id,
+        status: s.status,
+        isLive,
+        riskScore: s.risk_score,
+        signals: s.signals ? JSON.parse(s.signals) : [],
+        explanation: s.explanation,
+        startedAt: s.started_at,
+        updatedAt: s.updated_at,
+        completedAt: s.completed_at
+      };
+    });
 
     res.json({ items });
   } catch (error) {
     console.error('Error fetching admin sessions:', error);
+    res.status(500).json({ error: 'server_error', message: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/sessions/cleanup
+ * Mark stale or all inactive sessions as completed
+ */
+router.post('/admin/sessions/cleanup', async (req, res) => {
+  try {
+    const { mode = 'stale' } = req.body;
+    const now = new Date().toISOString();
+    if (mode === 'all') {
+      await runQuery(`UPDATE sessions SET status = 'completed', completed_at = ? WHERE status = 'active'`, [now]);
+    } else {
+      const staleThreshold = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+      await runQuery(
+        `UPDATE sessions SET status = 'completed', completed_at = updated_at WHERE status = 'active' AND updated_at < ?`,
+        [staleThreshold]
+      );
+    }
+    res.json({ success: true, mode });
+  } catch (error) {
+    console.error('Error cleaning up sessions:', error);
+    res.status(500).json({ error: 'server_error', message: error.message });
+  }
+});
+
+/**
+ * DELETE /api/admin/sessions/:sessionId
+ * Delete a specific test/demo session
+ */
+router.delete('/admin/sessions/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    await runQuery(`DELETE FROM events WHERE session_id = ?`, [sessionId]);
+    await runQuery(`DELETE FROM flags WHERE session_id = ?`, [sessionId]);
+    await runQuery(`DELETE FROM answers WHERE session_id = ?`, [sessionId]);
+    await runQuery(`DELETE FROM sessions WHERE id = ?`, [sessionId]);
+    latestPrimaryFrames.delete(sessionId);
+    latestSecondaryFrames.delete(sessionId);
+    res.json({ success: true, deletedSessionId: sessionId });
+  } catch (error) {
+    console.error('Error deleting session:', error);
     res.status(500).json({ error: 'server_error', message: error.message });
   }
 });
