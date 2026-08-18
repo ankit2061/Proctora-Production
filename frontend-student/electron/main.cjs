@@ -5,14 +5,15 @@ let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 850,
+    width: 1920,
+    height: 1080,
     minWidth: 1024,
     minHeight: 700,
     center: true,
-    fullscreen: false,
-    kiosk: false,
-    frame: true,
+    fullscreen: true,
+    kiosk: true,
+    simpleFullscreen: true,
+    frame: false,
     title: 'Proctora Student Assessment Station',
     icon: path.join(__dirname, 'icon.png'),
     autoHideMenuBar: true,
@@ -26,6 +27,9 @@ function createWindow() {
     }
   });
 
+  mainWindow.maximize();
+  mainWindow.setFullScreen(true);
+  mainWindow.setKiosk(true);
   Menu.setApplicationMenu(null);
 
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -66,9 +70,13 @@ function createWindow() {
 // IPC Handlers for Lockdown & Kiosk Mode
 ipcMain.handle('enter-lockdown', () => {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.setFullScreen(true);
-    mainWindow.setKiosk(true);
-    mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    try {
+      mainWindow.setSimpleFullScreen(true);
+      mainWindow.setFullScreen(true);
+      mainWindow.setKiosk(true);
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      mainWindow.focus();
+    } catch (e) {}
 
     // Register blocking shortcuts
     try {
@@ -89,9 +97,12 @@ ipcMain.handle('enter-lockdown', () => {
 
 ipcMain.handle('exit-lockdown', () => {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.setKiosk(false);
-    mainWindow.setFullScreen(false);
-    mainWindow.setAlwaysOnTop(false);
+    try {
+      mainWindow.setKiosk(false);
+      mainWindow.setFullScreen(false);
+      mainWindow.setSimpleFullScreen(false);
+      mainWindow.setAlwaysOnTop(false);
+    } catch (e) {}
     globalShortcut.unregisterAll();
     return { locked: false };
   }
@@ -100,9 +111,12 @@ ipcMain.handle('exit-lockdown', () => {
 
 ipcMain.handle('quit-app', () => {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.setKiosk(false);
-    mainWindow.setFullScreen(false);
-    mainWindow.setAlwaysOnTop(false);
+    try {
+      mainWindow.setKiosk(false);
+      mainWindow.setFullScreen(false);
+      mainWindow.setSimpleFullScreen(false);
+      mainWindow.setAlwaysOnTop(false);
+    } catch (e) {}
     globalShortcut.unregisterAll();
   }
   app.quit();

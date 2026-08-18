@@ -30,20 +30,25 @@ import {
   Radio
 } from 'lucide-react';
 
-const ENV_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : null;
-const API_BASE = ENV_BASE
-  ? (ENV_BASE.endsWith('/api') ? ENV_BASE : `${ENV_BASE}/api`)
-  : (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-      ? 'http://localhost:4000/api'
-      : `${window.location.origin}/api`);
+const getInitialApiBase = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('proctora_student_api_url');
+    if (saved) return saved.endsWith('/api') ? saved : `${saved.replace(/\/$/, '')}/api`;
+  }
 
-// In-House Local Python AI Engine (MediaPipe + YOLOv8 + DeepFace)
-const ENV_AI_BASE = import.meta.env.VITE_AI_URL ? import.meta.env.VITE_AI_URL.replace(/\/$/, '') : null;
-const AI_API_BASE = ENV_AI_BASE || (
-  ENV_BASE
-    ? (ENV_BASE.endsWith('/api') ? `${ENV_BASE}/ai` : `${ENV_BASE}/api/ai`)
-    : 'http://localhost:5001'
-);
+  if (import.meta.env.VITE_API_URL) {
+    const envUrl = import.meta.env.VITE_API_URL.replace(/\/$/, '');
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+  }
+
+  // Default to Render Production Backend so student session immediately syncs with Vercel Admin
+  return 'https://proctora-production.onrender.com/api';
+};
+
+const API_BASE = getInitialApiBase();
+
+// In-House Local Python AI Engine (MediaPipe 3D Pose + YOLOv8 + DeepFace) — zero cloud latency
+const AI_API_BASE = import.meta.env.VITE_AI_URL ? import.meta.env.VITE_AI_URL.replace(/\/$/, '') : 'http://localhost:5001';
 
 const SAMPLE_QUESTIONS = [
   {
