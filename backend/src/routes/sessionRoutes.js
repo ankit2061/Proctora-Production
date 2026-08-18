@@ -79,38 +79,64 @@ router.get('/sessions/:sessionId/primary-stream', async (req, res) => {
 });
 
 
+let customTunnelUrl = process.env.CUSTOM_TUNNEL_URL || null;
+
+/**
+ * POST /api/tunnel/config
+ * Register or clear a custom tunnel URL (e.g. ngrok / cloudflared / localtunnel)
+ */
+router.post('/tunnel/config', (req, res) => {
+  const { url } = req.body;
+  customTunnelUrl = url ? url.trim() : null;
+  res.json({ success: true, customTunnelUrl });
+});
+
+/**
+ * GET /api/network-info
+ * Auto-discovers LAN IPv4 address, active ports, and live Ngrok tunnels
+ */
 router.get('/network-info', async (req, res) => {
   const interfaces = os.networkInterfaces();
   let localIp = '127.0.0.1';
+  const availableIps = [];
 
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        localIp = iface.address;
-        break;
+        availableIps.push({ iface: name, ip: iface.address });
+        // Prioritize Wi-Fi (en0 / wlan0) or standard 192.168 / 10.x subnets
+        if (localIp === '127.0.0.1' || name.startsWith('en') || name.startsWith('wl') || name.startsWith('eth')) {
+          localIp = iface.address;
+        }
       }
     }
   }
 
-  let ngrokUrl = null;
+  let ngrokUrl = customTunnelUrl || process.env.NGROK_URL || null;
+  let ngrokTunnels = [];
   try {
-    const ngrokRes = await fetch('http://127.0.0.1:4040/api/tunnels');
+    const ngrokRes = await fetch('http://127.0.0.1:4040/api/tunnels', { signal: AbortSignal.timeout(1000) });
     if (ngrokRes.ok) {
       const data = await ngrokRes.json();
-      const publicTunnel = data.tunnels.find(t => t.proto === 'https');
-      if (publicTunnel) {
-        ngrokUrl = publicTunnel.public_url;
+      ngrokTunnels = data.tunnels || [];
+      const httpsTunnel = ngrokTunnels.find(t => t.proto === 'https');
+      if (httpsTunnel) {
+        ngrokUrl = httpsTunnel.public_url;
       }
     }
   } catch (err) {
-    // ngrok local API not running or unavailable
+    // ngrok local API not running
   }
 
   res.json({
     localIp,
+    availableIps,
     studentPort: 5173,
     backendPort: 4000,
-    ngrokUrl
+    aiPort: 5001,
+    ngrokUrl,
+    hasNgrok: Boolean(ngrokUrl),
+    customTunnelUrl
   });
 });
 

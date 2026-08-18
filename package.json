@@ -13,6 +13,7 @@
     "build:student": "npm --prefix frontend-student run build",
     "build:admin": "npm --prefix frontend-admin run build",
     "dev": "npx concurrently -n \"AI,BACKEND,STUDENT,ADMIN\" -c \"yellow,cyan,blue,magenta\" \"npm run ai:server\" \"npm run backend\" \"npm run student:desktop\" \"npm run admin\"",
+    "dev:web": "npx concurrently -n \"AI,BACKEND,STUDENT,ADMIN\" -c \"yellow,cyan,blue,magenta\" \"npm run ai:server\" \"npm run backend\" \"npm run student:web\" \"npm run admin\"",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

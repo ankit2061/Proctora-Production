@@ -1,6 +1,6 @@
-# 🛡️ Proctora: Multi-Modal AI-Powered Remote Exam Proctoring Ecosystem
+# 🛡️ Proctora: Multi-Modal In-House Remote Exam Proctoring Ecosystem
 
-**Proctora** is a full-stack, multi-camera remote exam proctoring platform featuring native kiosk lockdown, real-time computer vision verification, acoustic anomaly detection, and mobile desk pairing.
+**Proctora** is a high-performance, in-house remote exam proctoring platform featuring native kiosk lockdown, real-time local computer vision AI (<30ms latency), acoustic anomaly detection, and direct mobile desk pairing over LAN/Ngrok.
 
 ---
 
@@ -8,25 +8,27 @@
 
 ```mermaid
 graph TD
-    subgraph Student Client
-        EA[Electron Desktop Kiosk App] -->|Webcam Video & OS Telemetry| BE[Node.js Express Backend]
-        MC[Mobile Phone 45° Camera] -->|Desk Stream HTTPS/WebSockets| BE
-    end
-
-    subgraph Server Infrastructure
-        BE -->|Proxy Frames / Audio| AI[Python AI Microservice]
+    subgraph Student Desktop Machine [In-House Student Machine]
+        SK[Electron Desktop Kiosk App :5173]
+        AI[Local Python AI Engine :5001]
+        BE[Node.js Express Backend :4000]
+        
+        SK -->|Webcam Video Frames <30ms| AI
+        AI -->|3D Pose, MAR, YOLOv8 Contraband| SK
+        SK -->|Telemetry Events & Primary Preview| BE
         BE -->|Session State & Risk Scores| DB[(SQLite / PostgreSQL)]
     end
 
-    subgraph Invigilator Dashboard
-        ADM[React Admin Dashboard] -->|Real-time Dual Feeds & Risk Scores| BE
+    subgraph Mobile Desk Camera [Student Smartphone]
+        PH[Mobile Browser 45° Cam]
+        PH -->|Direct LAN Stream http://192.168.x.x:4000 or Ngrok HTTPS Tunnel| BE
     end
 
-    subgraph AI Engine Microservices
-        AI --> MP[MediaPipe 3D Head Pose & FaceMesh]
-        AI --> YOLO[YOLOv8 Contraband Detection]
-        AI --> SB[SpeechBrain ECAPA-TDNN Voice Biometrics]
-        AI --> DINO[DINOv2 Face Recognition]
+    subgraph Invigilator Dashboard [Admin Supervisor]
+        ADM[React Admin Dashboard :5174]
+        ADM -->|Real-time Dual Feeds & Risk Scores| BE
+        ADM -->|Force Terminate Session| BE
+        BE -->|Session Terminated| SK
     end
 ```
 
@@ -35,11 +37,11 @@ graph TD
 ## 📁 Repository Structure
 
 ```
-├── ai-engine/                  # Python 3.12 Vision AI (YOLOv8 + MediaPipe + 3D Pose + DINOv2)
-│   ├── api.py                  # Flask REST AI bridge (Port 5001)
-│   ├── exam_proctor.py         # Multi-modal detection algorithms
+├── ai-engine/                  # Local Python 3.12 Vision AI (YOLOv8 + MediaPipe 3D Pose + DeepFace)
+│   ├── api.py                  # Standalone FastAPI In-House Engine (Port 5001)
+│   ├── exam_proctor.py         # Multi-modal detection algorithms & ChromaDB vectors
 │   ├── requirements.txt        # Python dependency manifest
-│   └── Dockerfile              # Container definition for cloud deployment
+│   └── Dockerfile              # Container definition for local / cloud deployment
 │
 ├── backend/                    # Node.js Express REST API & Database
 │   ├── src/app/server.js       # Main server & AI proxy (Port 4000)
@@ -171,42 +173,45 @@ npm run dev
 
 ## 🌐 Cloud Hosting & Deployment Guide
 
-### A. Frontend Admin & Student Mobile Client (Vercel)
-1. Push repository to GitHub.
-2. Import project into [Vercel](https://vercel.com).
-3. Set **Root Directory** to `frontend-admin` (for Admin Dashboard) or `frontend-student` (for Web/Mobile student pairing).
-4. Build command: `npm run build` | Output directory: `dist`.
-5. Add Environment Variable:
-   ```env
-   VITE_API_BASE=https://your-backend-api.railway.app/api
-   ```
+### A. Database (Supabase PostgreSQL)
+1. Create a free project at [Supabase](https://supabase.com).
+2. Go to **Project Settings** -> **Database** and copy the **URI Connection String** (Transaction pooler or Direct).
+3. Paste into `backend/.env` as `DATABASE_URL`. The backend automatically creates all tables and seeds the demo exam on first run.
 
-### B. Node.js Backend (Railway / Render / Fly.io)
-1. Deploy `backend/` folder on **Railway** or **Render Web Service**.
-2. Start command: `node src/app/server.js`.
-3. Set Environment Variables:
+### B. Central Backend (Render / Railway / Fly.io)
+1. Create a new **Web Service** pointing to the `backend/` folder on GitHub.
+2. Build command: `npm install`.
+3. Start command: `node src/app/server.js`.
+4. Environment Variables:
    ```env
-   PORT=4000
    NODE_ENV=production
-   PYTHON_AI_URL=https://your-ai-engine.render.com
+   PORT=4000
+   DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxxx.supabase.co:5432/postgres
+   ALLOWED_ORIGINS=https://your-admin-dashboard.vercel.app
    ```
+5. Note your deployed Backend URL (e.g. `https://proctora-backend.onrender.com`).
 
-### C. Python AI Engine (Render / Railway / AWS EC2)
-1. Deploy `ai-engine/` as a Docker container or Python Web Service.
-2. Dockerfile provided handles OpenCV GL and dependencies automatically.
-3. Start command: `python3 api.py`.
+### C. Invigilator Admin Dashboard (Vercel)
+1. Import repository into [Vercel](https://vercel.com).
+2. Set **Root Directory** to `frontend-admin`.
+3. Build command: `npm run build` | Output directory: `dist`.
+4. Add Environment Variable:
+   ```env
+   VITE_API_URL=https://proctora-backend.onrender.com
+   ```
+5. The Admin Dashboard will automatically connect to the cloud backend, display live candidate tiles, and use the **Anti-Sleep Keepalive Heartbeat** to keep Render awake.
 
-### D. Packaging Student Desktop App (macOS & Windows)
+### D. Packaging In-House Student Desktop App (macOS & Windows)
 ```bash
 cd frontend-student
 
-# Package for macOS (.dmg / .app)
+# 1. Package for macOS (.dmg / .app)
 npm run build && npx electron-builder --mac
 
-# Package for Windows (.exe)
+# 2. Package for Windows (.exe)
 npm run build && npx electron-builder --win
 ```
-Installers will be generated in `frontend-student/dist-electron/`.
+Installers will be generated in `frontend-student/dist-electron/`. Direct mobile desk pairing runs 100% in-house over local Wi-Fi or in-house Ngrok tunnel.
 
 ---
 

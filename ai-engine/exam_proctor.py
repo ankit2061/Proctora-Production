@@ -52,8 +52,8 @@ FACE_CAPTURE_RETRIES   = 5       # seconds
 RMS_SILENCE_THRESHOLD  = 0.005
 RMS_MONITOR_THRESHOLD  = 0.001   # lower threshold for monitoring (catches quieter audio)
 
-CHROMA_DB_PATH = "./proctor_db"
-LOG_FILE       = "proctor_logs.json"
+CHROMA_DB_PATH = os.environ.get("CHROMA_DB_PATH", os.path.expanduser("~/.proctora/proctor_db"))
+LOG_FILE       = os.environ.get("LOG_FILE", os.path.expanduser("~/.proctora/proctor_logs.json"))
 
 # Detector backends to try, in order of preference
 DETECTOR_BACKENDS        = ["opencv", "ssd"]
@@ -141,15 +141,28 @@ class ExamProctor:
         self._monitor_thread: Optional[threading.Thread] = None
 
         logger.info(f"Connecting to ChromaDB at '{db_path}'…")
-        self._client = chromadb.PersistentClient(path=db_path)
-        self._face_col = self._client.get_or_create_collection(
-            name="face_embeddings_arcface",
-            metadata={"hnsw:space": "cosine"},
-        )
-        self._voice_col = self._client.get_or_create_collection(
-            name="voice_embeddings",
-            metadata={"hnsw:space": "cosine"},
-        )
+        try:
+            os.makedirs(db_path, exist_ok=True)
+            self._client = chromadb.PersistentClient(path=db_path)
+            self._face_col = self._client.get_or_create_collection(
+                name="face_embeddings_arcface",
+                metadata={"hnsw:space": "cosine"},
+            )
+            self._voice_col = self._client.get_or_create_collection(
+                name="voice_embeddings",
+                metadata={"hnsw:space": "cosine"},
+            )
+        except Exception as e:
+            logger.warning(f"Persistent ChromaDB initialization failed ({e}), falling back to EphemeralClient (in-memory)...")
+            self._client = chromadb.EphemeralClient()
+            self._face_col = self._client.get_or_create_collection(
+                name="face_embeddings_arcface",
+                metadata={"hnsw:space": "cosine"},
+            )
+            self._voice_col = self._client.get_or_create_collection(
+                name="voice_embeddings",
+                metadata={"hnsw:space": "cosine"},
+            )
         logger.info("ChromaDB collections ready.")
 
         # MediaPipe Setup for zero-latency face tracking

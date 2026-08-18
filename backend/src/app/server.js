@@ -18,34 +18,22 @@ app.use(helmet());
 // Logging: Standardized request logging
 app.use(morgan('dev'));
 
-// CORS: Restrict to allowed origins
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:5174'];
+// CORS: Allow local, LAN, and ngrok tunnel connections
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  }
+  origin: true,
+  credentials: true
 }));
 
-// Rate Limiting
+// Rate Limiting: High-capacity for real-time video snapshots and telemetry
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per `window`
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  windowMs: 15 * 60 * 1000,
+  max: 10000,
+  message: { error: 'rate_limit_exceeded', message: 'Too many requests, please slow down' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path.includes('/primary-stream') || req.path.includes('/secondary-stream') || req.path.includes('/events')
 });
 
-const sensitiveLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Strict limit for auth/sensitive routes
-  message: 'Too many sensitive requests from this IP, please try again later',
-});
-
-// Apply general rate limiter to all API requests
 app.use(generalLimiter);
 
 // Proxy Python AI endpoints (enroll, verify, analyze_frame) to the Flask AI server
@@ -82,9 +70,25 @@ app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 // Routes
 app.use('/api', sessionRoutes);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'proctora-backend', timestamp: new Date().toISOString() });
+// Health check & wake-up keepalive endpoint
+app.get('/health', async (req, res) => {
+  let activeSessionsCount = 0;
+  try {
+    const { allQuery } = await import('../models/db.js');
+    const rows = await allQuery(`SELECT COUNT(*) as count FROM sessions WHERE status = 'active'`);
+    if (rows && rows.length > 0) {
+      activeSessionsCount = parseInt(rows[0].count || 0, 10);
+    }
+  } catch (e) {}
+
+  res.json({
+    status: 'ok',
+    service: 'proctora-backend',
+    version: '2.0.0',
+    uptimeSeconds: Math.floor(process.uptime()),
+    activeSessions: activeSessionsCount,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Global Error Handler

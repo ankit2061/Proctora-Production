@@ -11,12 +11,20 @@ import {
   Search,
   ChevronRight,
   Zap,
-  ShieldAlert
+  ShieldAlert,
+  Power,
+  Activity,
+  Server,
+  Wifi,
+  Play,
+  CheckCircle,
+  RotateCcw
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL 
-  ? (import.meta.env.VITE_API_URL.endsWith('/api') ? import.meta.env.VITE_API_URL : `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`)
-  : 'http://localhost:4000/api';
+const ENV_API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : null;
+const API_ROOT = ENV_API_URL || (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') ? 'http://localhost:4000' : window.location.origin);
+const API_BASE = API_ROOT.endsWith('/api') ? API_ROOT : `${API_ROOT}/api`;
+const HEALTH_URL = `${API_ROOT.replace(/\/api$/, '')}/health`;
 
 // ═══════════════════════════════════════════════════════
 // RISK DIAL — SVG radial gauge (the signature element)
@@ -208,6 +216,115 @@ export default function App() {
   const [primaryStream, setPrimaryStream] = useState(null);
   const [terminatingSessionId, setTerminatingSessionId] = useState(null);
 
+  // Backend Connection, Health & Wake-Up Controller States
+  const [backendStatus, setBackendStatus] = useState('checking'); // 'online' | 'waking' | 'offline' | 'checking'
+  const [backendLatency, setBackendLatency] = useState(null);
+  const [wakingElapsedSec, setWakingElapsedSec] = useState(0);
+  const [isWakingUp, setIsWakingUp] = useState(false);
+  const [preventSleep, setPreventSleep] = useState(true);
+  const [serverDetails, setServerDetails] = useState(null);
+  const wakingIntervalRef = useRef(null);
+  const wakingTimerRef = useRef(null);
+
+  // Check backend health & compute roundtrip latency
+  const checkBackendHealth = async () => {
+    const startTime = Date.now();
+    try {
+      const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        const data = await res.json();
+        setBackendLatency(Date.now() - startTime);
+        setBackendStatus('online');
+        setServerDetails(data);
+        return true;
+      } else {
+        if (!isWakingUp) setBackendStatus('offline');
+        return false;
+      }
+    } catch (err) {
+      if (!isWakingUp) {
+        setBackendStatus('offline');
+      }
+      return false;
+    }
+  };
+
+  // Wake up sleeping backend (e.g. Render 15-minute inactivity spin-down)
+  const wakeUpBackend = async () => {
+    setIsWakingUp(true);
+    setBackendStatus('waking');
+    setWakingElapsedSec(0);
+
+    if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+    if (wakingIntervalRef.current) clearInterval(wakingIntervalRef.current);
+
+    const startWakingTime = Date.now();
+    wakingTimerRef.current = setInterval(() => {
+      setWakingElapsedSec(Math.floor((Date.now() - startWakingTime) / 1000));
+    }, 1000);
+
+    const attemptWake = async () => {
+      try {
+        const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(8000) });
+        if (res.ok) {
+          const data = await res.json();
+          setBackendStatus('online');
+          setIsWakingUp(false);
+          setServerDetails(data);
+          setBackendLatency(Date.now() - startWakingTime);
+          if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+          if (wakingIntervalRef.current) clearInterval(wakingIntervalRef.current);
+          fetchSessions();
+          return true;
+        }
+      } catch (err) {}
+      return false;
+    };
+
+    // Immediate attempt
+    const success = await attemptWake();
+    if (!success) {
+      // Retry every 3 seconds for up to 70 seconds (handles Render cold start)
+      wakingIntervalRef.current = setInterval(async () => {
+        const isUp = await attemptWake();
+        if (isUp) {
+          if (wakingIntervalRef.current) clearInterval(wakingIntervalRef.current);
+        }
+      }, 3000);
+
+      setTimeout(() => {
+        if (wakingIntervalRef.current) clearInterval(wakingIntervalRef.current);
+        if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+        setIsWakingUp(false);
+      }, 75000);
+    }
+  };
+
+  // Periodic health check & keepalive to prevent Render sleep
+  useEffect(() => {
+    checkBackendHealth();
+
+    const healthInterval = setInterval(() => {
+      if (!isWakingUp) {
+        checkBackendHealth();
+      }
+    }, 8000);
+
+    // Auto-Keepalive ping every 3.5 minutes (210s) to keep cloud free-tier permanently awake
+    const keepaliveInterval = setInterval(() => {
+      if (preventSleep) {
+        fetch(HEALTH_URL).catch(() => {});
+      }
+    }, 210000);
+
+    return () => {
+      clearInterval(healthInterval);
+      clearInterval(keepaliveInterval);
+      if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+      if (wakingIntervalRef.current) clearInterval(wakingIntervalRef.current);
+    };
+  }, [preventSleep, isWakingUp]);
+
   // Fetch all sessions
   const fetchSessions = async () => {
     try {
@@ -354,7 +471,7 @@ export default function App() {
 
       {/* ═══ CONTROL ROOM HEADER ═══ */}
       <header style={{
-        padding: '12px 28px',
+        padding: '10px 28px',
         borderBottom: '1px solid var(--border-subtle)',
         display: 'flex',
         justifyContent: 'space-between',
@@ -395,8 +512,82 @@ export default function App() {
           </span>
         </div>
 
-        {/* Right: Clock + Refresh */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Right: Backend Live Status + Wake Up Button + Keepalive + Clock + Refresh */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+          {/* Backend Status & Wake-Up Controller Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'var(--bg-slate)',
+            padding: '4px 10px',
+            borderRadius: '4px',
+            border: `1px solid ${backendStatus === 'online' ? 'rgba(59,166,118,0.25)' : backendStatus === 'waking' ? 'rgba(212,148,58,0.35)' : 'rgba(224,78,67,0.35)'}`
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%',
+                background: backendStatus === 'online' ? 'var(--clear-green)' : backendStatus === 'waking' ? 'var(--amber-watch)' : 'var(--signal-red)',
+                boxShadow: backendStatus === 'online' ? '0 0 8px var(--clear-green)' : backendStatus === 'waking' ? '0 0 8px var(--amber-watch)' : '0 0 6px var(--signal-red)',
+                animation: backendStatus === 'waking' ? 'pulse 1.2s infinite' : 'none'
+              }} />
+              <span style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: '0.72rem',
+                color: backendStatus === 'online' ? 'var(--clear-green)' : backendStatus === 'waking' ? 'var(--amber-watch)' : 'var(--signal-red)'
+              }}>
+                {backendStatus === 'online'
+                  ? `Backend Live ${backendLatency !== null ? `(${backendLatency}ms)` : ''}`
+                  : backendStatus === 'waking'
+                  ? `Waking Server (${wakingElapsedSec}s)...`
+                  : 'Backend Offline / Sleeping'}
+              </span>
+            </div>
+
+            {/* Wake Up Button (when offline or waking) */}
+            {backendStatus !== 'online' && (
+              <button
+                type="button"
+                onClick={wakeUpBackend}
+                disabled={isWakingUp}
+                className="btn-primary"
+                style={{
+                  padding: '3px 8px',
+                  fontSize: '0.68rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  borderRadius: '3px',
+                  cursor: isWakingUp ? 'wait' : 'pointer'
+                }}
+                title="Send wake-up call to backend (wakes Render from inactivity sleep)"
+              >
+                {isWakingUp ? <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={11} />}
+                {isWakingUp ? 'Waking...' : 'Wake Backend'}
+              </button>
+            )}
+
+            {/* Anti-Sleep Keepalive Toggle */}
+            <button
+              type="button"
+              onClick={() => setPreventSleep(!preventSleep)}
+              style={{
+                background: preventSleep ? 'rgba(59,166,118,0.15)' : 'transparent',
+                border: '1px solid ' + (preventSleep ? 'rgba(59,166,118,0.3)' : 'var(--border-subtle)'),
+                color: preventSleep ? 'var(--clear-green)' : 'var(--chalk-dim)',
+                padding: '2px 6px',
+                borderRadius: '3px',
+                fontSize: '0.65rem',
+                fontFamily: 'var(--font-data)',
+                cursor: 'pointer'
+              }}
+              title="Sends background keepalive pings every 3.5 mins to prevent Render free-tier from sleeping"
+            >
+              Anti-Sleep: {preventSleep ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
           <LiveClock />
 
           <button

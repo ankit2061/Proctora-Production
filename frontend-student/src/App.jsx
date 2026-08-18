@@ -21,16 +21,29 @@ import {
   Check,
   Compass,
   LogOut,
-  RotateCcw
+  RotateCcw,
+  Wifi,
+  Globe,
+  Copy,
+  ExternalLink,
+  Zap,
+  Radio
 } from 'lucide-react';
 
 const ENV_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : null;
 const API_BASE = ENV_BASE
   ? (ENV_BASE.endsWith('/api') ? ENV_BASE : `${ENV_BASE}/api`)
-  : (window.location.origin.includes('localhost') ? 'http://localhost:4000/api' : `${window.location.origin}/api`);
-const AI_API_BASE = ENV_BASE
-  ? (ENV_BASE.endsWith('/api') ? `${ENV_BASE}/ai` : `${ENV_BASE}/api/ai`)
-  : (window.location.origin.includes('localhost') ? 'http://localhost:4000/api/ai' : `${window.location.origin}/api/ai`);
+  : (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+      ? 'http://localhost:4000/api'
+      : `${window.location.origin}/api`);
+
+// In-House Local Python AI Engine (MediaPipe + YOLOv8 + DeepFace)
+const ENV_AI_BASE = import.meta.env.VITE_AI_URL ? import.meta.env.VITE_AI_URL.replace(/\/$/, '') : null;
+const AI_API_BASE = ENV_AI_BASE || (
+  ENV_BASE
+    ? (ENV_BASE.endsWith('/api') ? `${ENV_BASE}/ai` : `${ENV_BASE}/api/ai`)
+    : 'http://localhost:5001'
+);
 
 const SAMPLE_QUESTIONS = [
   {
@@ -89,9 +102,8 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
   const [facingMode, setFacingMode] = useState('environment');
   const [streamActive, setStreamActive] = useState(false);
   const [framesSent, setFramesSent] = useState(0);
+  const [latencyMs, setLatencyMs] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-
-  const apiHost = backendHost || `${window.location.hostname}:4000`;
 
   const startMobileCamera = async () => {
     try {
@@ -123,7 +135,7 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
         setStreamActive(true);
         setErrorMsg(null);
       } catch (fallbackErr) {
-        setErrorMsg('Camera access denied. Please allow camera permissions in your browser.');
+        setErrorMsg('Camera access denied. Please allow camera permissions in your mobile browser settings.');
       }
     }
   };
@@ -137,12 +149,15 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
     };
   }, [facingMode]);
 
-  // Stream snapshot to backend every 2 seconds
+  // High-performance streaming: direct to local student host/backend every 800ms
   useEffect(() => {
     if (!streamActive || !sessionId) return;
 
+    let isSending = false;
     const sendSnapshot = async () => {
-      if (!videoRef.current) return;
+      if (!videoRef.current || isSending) return;
+      isSending = true;
+      const startTime = Date.now();
       try {
         const canvas = document.createElement('canvas');
         canvas.width = 480;
@@ -150,11 +165,19 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(videoRef.current, 0, 0, 480, 360);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.55);
 
-        const endpoint = window.location.origin.includes('localhost')
-          ? `http://${apiHost}/api/sessions/${sessionId}/secondary-stream`
-          : `${window.location.origin}/api/sessions/${sessionId}/secondary-stream`;
+        let endpoint;
+        if (backendHost) {
+          if (backendHost.startsWith('http://') || backendHost.startsWith('https://')) {
+            endpoint = `${backendHost.replace(/\/$/, '')}/api/sessions/${sessionId}/secondary-stream`;
+          } else {
+            const proto = backendHost.includes('ngrok') || window.location.protocol === 'https:' ? 'https:' : 'http:';
+            endpoint = `${proto}//${backendHost}/api/sessions/${sessionId}/secondary-stream`;
+          }
+        } else {
+          endpoint = `${window.location.origin}/api/sessions/${sessionId}/secondary-stream`;
+        }
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -168,15 +191,18 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
 
         if (res.ok) {
           setFramesSent(prev => prev + 1);
+          setLatencyMs(Date.now() - startTime);
         }
       } catch (err) {
-        console.debug('Frame send error:', err);
+        console.debug('Desk frame send error:', err);
+      } finally {
+        isSending = false;
       }
     };
 
-    const interval = setInterval(sendSnapshot, 2000);
+    const interval = setInterval(sendSnapshot, 800);
     return () => clearInterval(interval);
-  }, [streamActive, sessionId, apiHost]);
+  }, [streamActive, sessionId, backendHost, studentId]);
 
   return (
     <div style={{
@@ -197,21 +223,44 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
         borderBottom: '1px solid var(--border-subtle)',
         marginBottom: '14px'
       }}>
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '0.85rem',
-          color: 'var(--chalk)',
-          letterSpacing: '0.06em'
-        }}>
-          DESK CAM
-        </span>
-        <span style={{
-          fontFamily: 'var(--font-data)',
-          fontSize: '0.72rem',
-          color: streamActive ? 'var(--clear-green)' : 'var(--signal-red)'
-        }}>
-          {streamActive ? '● live' : '○ connecting'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: streamActive ? 'var(--clear-green)' : 'var(--signal-red)',
+            boxShadow: streamActive ? '0 0 8px var(--clear-green)' : 'none'
+          }} />
+          <span style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '0.85rem',
+            color: 'var(--chalk)',
+            letterSpacing: '0.06em'
+          }}>
+            DESK STREAM
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {latencyMs !== null && (
+            <span style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: '0.7rem',
+              color: latencyMs < 80 ? 'var(--clear-green)' : 'var(--amber-watch)',
+              background: 'rgba(255,255,255,0.05)',
+              padding: '2px 6px',
+              borderRadius: '3px'
+            }}>
+              {latencyMs}ms
+            </span>
+          )}
+          <span style={{
+            fontFamily: 'var(--font-data)',
+            fontSize: '0.72rem',
+            color: streamActive ? 'var(--clear-green)' : 'var(--signal-red)'
+          }}>
+            {streamActive ? '● live' : '○ connecting'}
+          </span>
+        </div>
       </div>
 
       {errorMsg ? (
@@ -250,10 +299,10 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
               gap: '6px'
             }}>
               <Compass size={14} />
-              PLACEMENT
+              PLACEMENT GUIDE
             </div>
             <p style={{ color: 'var(--chalk-mid)', fontSize: '0.78rem' }}>
-              Prop phone at <strong style={{ color: 'var(--chalk)' }}>arm's length, 45° angle</strong>. Desk, keyboard, and hands must be visible.
+              Prop phone at <strong style={{ color: 'var(--chalk)' }}>arm's length, 45° angle</strong>. Your desk surface, keyboard, and hands must remain visible.
             </p>
           </div>
 
@@ -289,6 +338,7 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
               justifyContent: 'space-between',
               alignItems: 'center',
               background: 'rgba(13, 15, 23, 0.85)',
+              backdropFilter: 'blur(4px)',
               padding: '6px 10px',
               borderRadius: '4px',
               border: '1px solid var(--border-subtle)',
@@ -325,7 +375,7 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '10px', color: 'var(--chalk-dim)', fontSize: '0.72rem', fontFamily: 'var(--font-display)' }}>
-            Keep this page open throughout the exam.
+            Keep this screen active throughout your exam.
           </div>
         </>
       )}
@@ -363,7 +413,18 @@ export default function App() {
   const [isElectron, setIsElectron] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
 
-  const [networkInfo, setNetworkInfo] = useState({ localIp: window.location.hostname || '127.0.0.1', studentPort: 5173 });
+  const [networkInfo, setNetworkInfo] = useState({
+    localIp: window.location.hostname || '127.0.0.1',
+    availableIps: [],
+    studentPort: 5173,
+    backendPort: 4000,
+    aiPort: 5001,
+    ngrokUrl: null,
+    hasNgrok: false
+  });
+  const [qrMode, setQrMode] = useState('wifi'); // 'wifi' | 'ngrok' | 'custom'
+  const [customHost, setCustomHost] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
   const [secondaryCamActive, setSecondaryCamActive] = useState(false);
   const [secondaryCamPreview, setSecondaryCamPreview] = useState(null);
   const [deskContraband, setDeskContraband] = useState(null);
@@ -882,10 +943,24 @@ export default function App() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // QR Code URL
-  const mobilePairingUrl = networkInfo.ngrokUrl
-    ? `${networkInfo.ngrokUrl}/?mode=mobile&sessionId=${session?.sessionId || `sess_${studentId}`}&studentId=${studentId}&host=${networkInfo.ngrokUrl.replace(/^https?:\/\//, '')}`
-    : `http://${networkInfo.localIp}:${networkInfo.studentPort}/?mode=mobile&sessionId=${session?.sessionId || `sess_${studentId}`}&studentId=${studentId}&host=${networkInfo.localIp}:4000`;
+  // Dynamic QR Code Pairing URL calculation
+  const currentSessionKey = session?.sessionId || `sess_${studentId}`;
+  let mobilePairingUrl = '';
+
+  if (qrMode === 'ngrok' && networkInfo.ngrokUrl) {
+    const ngrokClean = networkInfo.ngrokUrl.replace(/\/$/, '');
+    const ngrokHost = ngrokClean.replace(/^https?:\/\//, '');
+    mobilePairingUrl = `${ngrokClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&host=${ngrokHost}`;
+  } else if (qrMode === 'custom' && customHost.trim()) {
+    const hostClean = customHost.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    mobilePairingUrl = `http://${hostClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&host=${hostClean}`;
+  } else {
+    // Mode: 'wifi' (Direct LAN IP)
+    const lanIp = networkInfo.localIp || window.location.hostname || '127.0.0.1';
+    const clientPort = networkInfo.studentPort || 5173;
+    const bePort = networkInfo.backendPort || 4000;
+    mobilePairingUrl = `http://${lanIp}:${clientPort}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&host=${lanIp}:${bePort}`;
+  }
 
   // ═══════════════════════════════════════════════════════════════════════
   // 1. TERMINATED VIEW
@@ -1071,11 +1146,11 @@ export default function App() {
             {/* Step 3: Desk Cam */}
             <div className="panel-raised" style={{
               padding: '18px',
-              border: `1px solid ${secondaryCamActive ? 'rgba(59, 166, 118, 0.25)' : 'var(--border-mid)'}`,
+              border: `1px solid ${secondaryCamActive ? 'rgba(59, 166, 118, 0.35)' : 'var(--border-mid)'}`,
               display: 'flex',
               flexDirection: 'column'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.72rem', color: 'var(--chalk-dim)', letterSpacing: '0.06em' }}>03</span>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', color: 'var(--chalk)', letterSpacing: '0.02em' }}>DESK CAM</span>
@@ -1083,21 +1158,132 @@ export default function App() {
                 <span style={{
                   fontFamily: 'var(--font-data)',
                   fontSize: '0.72rem',
-                  color: secondaryCamActive ? 'var(--clear-green)' : 'var(--chalk-dim)'
+                  color: secondaryCamActive ? 'var(--clear-green)' : 'var(--chalk-dim)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}>
                   {secondaryCamActive ? '● paired' : '○ waiting'}
                 </span>
               </div>
 
+              {/* Mode Selector Tabs */}
               <div style={{
-                height: '170px',
+                display: 'flex',
+                background: 'rgba(0,0,0,0.25)',
+                borderRadius: '4px',
+                padding: '2px',
+                marginBottom: '10px',
+                gap: '2px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setQrMode('wifi')}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    fontSize: '0.65rem',
+                    fontFamily: 'var(--font-display)',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    background: qrMode === 'wifi' ? 'var(--bg-slate)' : 'transparent',
+                    color: qrMode === 'wifi' ? 'var(--chalk)' : 'var(--chalk-dim)',
+                    boxShadow: qrMode === 'wifi' ? '0 1px 3px rgba(0,0,0,0.3)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                  title="Direct 0-latency Wi-Fi connection"
+                >
+                  <Wifi size={11} />
+                  Wi-Fi LAN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQrMode('ngrok')}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    fontSize: '0.65rem',
+                    fontFamily: 'var(--font-display)',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    background: qrMode === 'ngrok' ? 'var(--bg-slate)' : 'transparent',
+                    color: qrMode === 'ngrok' ? 'var(--chalk)' : 'var(--chalk-dim)',
+                    boxShadow: qrMode === 'ngrok' ? '0 1px 3px rgba(0,0,0,0.3)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                  title="Secure Ngrok Tunnel (for Cellular 4G/5G)"
+                >
+                  <Globe size={11} />
+                  Ngrok
+                  {networkInfo.hasNgrok && (
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--clear-green)' }} />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQrMode('custom')}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    fontSize: '0.65rem',
+                    fontFamily: 'var(--font-display)',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    background: qrMode === 'custom' ? 'var(--bg-slate)' : 'transparent',
+                    color: qrMode === 'custom' ? 'var(--chalk)' : 'var(--chalk-dim)',
+                    boxShadow: qrMode === 'custom' ? '0 1px 3px rgba(0,0,0,0.3)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                  title="Custom Host / IP"
+                >
+                  Custom
+                </button>
+              </div>
+
+              {/* Custom Host Input */}
+              {qrMode === 'custom' && (
+                <div style={{ marginBottom: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="e.g. 192.168.1.50:5173"
+                    value={customHost}
+                    onChange={(e) => setCustomHost(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '5px 8px',
+                      fontSize: '0.72rem',
+                      fontFamily: 'var(--font-data)',
+                      borderRadius: '3px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-deep)',
+                      color: 'var(--chalk)'
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* QR Code / Video Feed Display */}
+              <div style={{
+                height: '160px',
                 background: 'var(--bg-light)',
                 borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '10px',
-                marginBottom: '12px',
+                padding: '8px',
+                marginBottom: '10px',
                 position: 'relative'
               }}>
                 {secondaryCamPreview ? (
@@ -1119,14 +1305,77 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  <QRCodeSVG value={mobilePairingUrl} size={140} level="M" fgColor="#0D0F17" bgColor="#F0EDE4" />
+                  <QRCodeSVG value={mobilePairingUrl} size={135} level="M" fgColor="#0D0F17" bgColor="#F0EDE4" />
                 )}
               </div>
 
-              <div style={{ marginTop: 'auto', fontSize: '0.72rem', color: 'var(--chalk-dim)', textAlign: 'center', lineHeight: 1.3, fontFamily: 'var(--font-data)' }}>
-                {secondaryCamActive
-                  ? 'Phone connected'
-                  : `Scan with phone (${networkInfo.localIp})`}
+              {/* URL & Action Toolbar */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '6px',
+                marginTop: 'auto',
+                paddingTop: '6px',
+                borderTop: '1px solid rgba(255,255,255,0.05)'
+              }}>
+                <div style={{
+                  fontSize: '0.68rem',
+                  color: 'var(--chalk-dim)',
+                  fontFamily: 'var(--font-data)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '160px'
+                }}>
+                  {qrMode === 'ngrok'
+                    ? (networkInfo.ngrokUrl ? 'Ngrok live' : 'Ngrok offline')
+                    : qrMode === 'custom'
+                    ? (customHost || 'Custom host')
+                    : `Wi-Fi: ${networkInfo.localIp}`}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(mobilePairingUrl);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }}
+                    className="btn-ghost"
+                    style={{
+                      padding: '3px 6px',
+                      fontSize: '0.65rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                    title="Copy Pairing URL"
+                  >
+                    {copiedLink ? <Check size={11} color="var(--clear-green)" /> : <Copy size={11} />}
+                    {copiedLink ? 'Copied' : 'Copy'}
+                  </button>
+
+                  <a
+                    href={mobilePairingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-ghost"
+                    style={{
+                      padding: '3px 6px',
+                      fontSize: '0.65rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      textDecoration: 'none'
+                    }}
+                    title="Open mobile view in new tab for testing"
+                  >
+                    <ExternalLink size={11} />
+                    Test
+                  </a>
+                </div>
               </div>
             </div>
           </div>

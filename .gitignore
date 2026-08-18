@@ -46,3 +46,5 @@ Thumbs.db
 # Test Crops & Temporary Artifacts
 user_*crop.jpg
 test_*crop.jpg
+*.pt
+

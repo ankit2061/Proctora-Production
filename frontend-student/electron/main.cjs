@@ -28,8 +28,14 @@ function createWindow() {
   mainWindow.setFullScreen(true);
   Menu.setApplicationMenu(null);
 
-  const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173';
-  mainWindow.loadURL(startUrl);
+  const isDev = process.env.NODE_ENV === 'development' || process.defaultApp || /[\\/]electron-prebuilt[\\/]/.test(process.execPath) || /[\\/]electron[\\/]/.test(process.execPath);
+
+  if (isDev) {
+    const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173';
+    mainWindow.loadURL(startUrl);
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
 
   // OS Window Blur / Focus Event Listeners
   mainWindow.on('blur', () => {
