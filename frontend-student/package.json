@@ -41,10 +41,13 @@
     ],
     "asar": false,
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "electron/icon.icns",
+      "category": "public.app-category.education"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "electron/icon.png"
     }
   }
 }

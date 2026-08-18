@@ -553,34 +553,37 @@ export default function App() {
         zIndex: 50
       }}>
         {/* Left: Identity + Roll Call */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '24px' }}>
-          <span style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1rem',
-            fontWeight: 500,
-            color: 'var(--chalk)',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase'
-          }}>
-            Proctora
-          </span>
-          <span style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '0.75rem',
-            color: 'var(--chalk-mid)',
-            letterSpacing: '0.04em'
-          }}>
-            Watch Floor
-            {sessions.length > 0 && (
-              <> · <span style={{ color: 'var(--chalk)' }}>{totalDesks}</span> desks</>
-            )}
-            {activeDesks > 0 && (
-              <> · <span style={{ color: 'var(--amber-watch)' }}>{activeDesks}</span> active</>
-            )}
-            {flaggedDesks > 0 && (
-              <> · <span style={{ color: 'var(--signal-red)' }}>{flaggedDesks}</span> flagged</>
-            )}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <img src="/logo.png" alt="Proctora Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1rem',
+              fontWeight: 600,
+              color: 'var(--chalk)',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase'
+            }}>
+              Proctora
+            </span>
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '0.75rem',
+              color: 'var(--chalk-mid)',
+              letterSpacing: '0.04em'
+            }}>
+              Watch Floor
+              {sessions.length > 0 && (
+                <> · <span style={{ color: 'var(--chalk)' }}>{totalDesks}</span> desks</>
+              )}
+              {activeDesks > 0 && (
+                <> · <span style={{ color: 'var(--amber-watch)' }}>{activeDesks}</span> active</>
+              )}
+              {flaggedDesks > 0 && (
+                <> · <span style={{ color: 'var(--signal-red)' }}>{flaggedDesks}</span> flagged</>
+              )}
+            </span>
+          </div>
         </div>
 
         {/* Right: Backend Live Status + Wake Up Button + Keepalive + Clock + Refresh */}

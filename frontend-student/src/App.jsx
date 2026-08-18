@@ -1034,19 +1034,37 @@ export default function App() {
         <div className="panel-slate" style={{ maxWidth: '1040px', width: '100%', padding: '32px 36px' }}>
 
           {/* Header */}
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.1rem',
-              color: 'var(--chalk)',
-              letterSpacing: '0.08em',
-              marginBottom: '6px'
-            }}>
-              SEAT CHECK-IN
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <img src="/logo.png" alt="Proctora Logo" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+              <div>
+                <div style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.15rem',
+                  fontWeight: 600,
+                  color: 'var(--chalk)',
+                  letterSpacing: '0.08em',
+                  marginBottom: '2px'
+                }}>
+                  PROCTORA · SEAT CHECK-IN
+                </div>
+                <p style={{ color: 'var(--chalk-mid)', fontSize: '0.85rem', maxWidth: '560px', lineHeight: 1.4 }}>
+                  Verify your identity to begin. Capture your face and voice, then pair your phone as a desk camera.
+                </p>
+              </div>
             </div>
-            <p style={{ color: 'var(--chalk-mid)', fontSize: '0.85rem', maxWidth: '560px', lineHeight: 1.5 }}>
-              Verify your identity to begin. Capture your face and voice, then pair your phone as a desk camera.
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: '0.72rem',
+                color: 'var(--chalk-dim)',
+                background: 'rgba(255,255,255,0.05)',
+                padding: '4px 10px',
+                borderRadius: '4px'
+              }}>
+                {isElectron ? 'Desktop Kiosk' : 'Web Station'}
+              </span>
+            </div>
           </div>
 
           {/* 3-Step Grid */}
@@ -1569,14 +1587,25 @@ export default function App() {
         top: 0,
         zIndex: 50
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/logo.png" alt="Proctora Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
           <span style={{
             fontFamily: 'var(--font-display)',
             fontSize: '0.78rem',
+            color: 'var(--chalk)',
+            letterSpacing: '0.08em',
+            fontWeight: 600
+          }}>
+            PROCTORA
+          </span>
+          <span style={{ color: 'var(--chalk-dim)', fontSize: '0.75rem' }}>·</span>
+          <span style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '0.75rem',
             color: 'var(--chalk-mid)',
             letterSpacing: '0.06em'
           }}>
-            EXAM SESSION
+            ASSESSMENT
           </span>
           <div className="telemetry-indicator">
             <div className="pulse-dot" />

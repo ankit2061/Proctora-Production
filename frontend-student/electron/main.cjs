@@ -14,6 +14,7 @@ function createWindow() {
     kiosk: false,
     frame: true,
     title: 'Proctora Student Assessment Station',
+    icon: path.join(__dirname, 'icon.png'),
     autoHideMenuBar: true,
     backgroundColor: '#0b0f19',
     webPreferences: {
