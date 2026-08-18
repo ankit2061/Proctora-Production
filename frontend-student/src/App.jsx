@@ -173,20 +173,27 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.55);
 
         let endpoint;
-        if (backendHost) {
-          if (backendHost.startsWith('http://') || backendHost.startsWith('https://')) {
-            endpoint = `${backendHost.replace(/\/$/, '')}/api/sessions/${sessionId}/secondary-stream`;
-          } else {
-            const proto = backendHost.includes('ngrok') || window.location.protocol === 'https:' ? 'https:' : 'http:';
-            endpoint = `${proto}//${backendHost}/api/sessions/${sessionId}/secondary-stream`;
+        const searchParams = new URLSearchParams(window.location.search);
+        const targetBackend = searchParams.get('backendUrl') || searchParams.get('host') || backendHost;
+
+        if (targetBackend) {
+          let cleanUrl = targetBackend.replace(/\/$/, '');
+          if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+            const proto = cleanUrl.includes('ngrok') || window.location.protocol === 'https:' ? 'https:' : 'http:';
+            cleanUrl = `${proto}//${cleanUrl}`;
           }
+          if (!cleanUrl.endsWith('/api')) cleanUrl = `${cleanUrl}/api`;
+          endpoint = `${cleanUrl}/sessions/${sessionId}/secondary-stream`;
         } else {
           endpoint = `${window.location.origin}/api/sessions/${sessionId}/secondary-stream`;
         }
 
         const res = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
           body: JSON.stringify({
             imageBase64: dataUrl,
             studentId,
@@ -449,6 +456,7 @@ export default function App() {
     gazeAway: false,
     gazeDesk: false,
     mouthMovement: false,
+    mouthCovered: false,
     contraband: null,
     multiplePersons: false,
     headPose: { yaw: 0, pitch: 0, roll: 0 }
@@ -467,6 +475,7 @@ export default function App() {
   // Debouncing refs
   const gazeAwayConsecutiveRef = useRef(0);
   const mouthMovementConsecutiveRef = useRef(0);
+  const mouthCoveredConsecutiveRef = useRef(0);
   const absentConsecutiveRef = useRef(0);
   const multiplePersonsConsecutiveRef = useRef(0);
 
@@ -728,6 +737,7 @@ export default function App() {
               gazeAway: analysis.gaze_away || false,
               gazeDesk: analysis.gaze_desk || false,
               mouthMovement: analysis.mouth_movement || false,
+              mouthCovered: analysis.mouth_covered || false,
               contraband: analysis.contraband_detected || null,
               multiplePersons: analysis.multiple_persons || false,
               headPose: analysis.head_pose || { yaw: 0, pitch: 0, roll: 0 }
@@ -760,6 +770,20 @@ export default function App() {
               }
             } else {
               mouthMovementConsecutiveRef.current = 0;
+            }
+
+            // Hand over mouth / mouth covering detection
+            if (analysis.mouth_covered) {
+              mouthCoveredConsecutiveRef.current += 1;
+              if (mouthCoveredConsecutiveRef.current === 2) {
+                emitTelemetryEvent('HAND_OVER_MOUTH', {
+                  model: 'MediaPipe_Hands_FaceOcclusion',
+                  detail: 'Hand covering mouth / lower face occlusion detected'
+                });
+                setWarningToast('⚠️ Hand covering mouth detected. Please keep hands away from face.');
+              }
+            } else {
+              mouthCoveredConsecutiveRef.current = 0;
             }
 
             // Absent detection
@@ -801,6 +825,81 @@ export default function App() {
       if (frameAnalysisIntervalRef.current) clearInterval(frameAnalysisIntervalRef.current);
     };
   }, [step, session]);
+
+  // Real-time Continuous Microphone Acoustic Speech Detection (VAD)
+  useEffect(() => {
+    if (step !== 'exam') return;
+
+    let audioCtx = null;
+    let micStream = null;
+    let animFrameId = null;
+    let isSpeaking = false;
+    let speechDurationMs = 0;
+    let lastCheckTime = Date.now();
+
+    const startAudioMonitoring = async () => {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtxClass) return;
+        audioCtx = new AudioCtxClass();
+        const source = audioCtx.createMediaStreamSource(micStream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.35;
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        const checkAudio = () => {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          const bins = Math.min(80, dataArray.length);
+          for (let i = 2; i < bins; i++) {
+            sum += dataArray[i];
+          }
+          const avgEnergy = sum / Math.max(1, bins - 2);
+
+          const now = Date.now();
+          const deltaMs = Math.min(100, now - lastCheckTime);
+          lastCheckTime = now;
+
+          // Vocal energy threshold (human speech / whispering energy is > 26)
+          if (avgEnergy > 26) {
+            speechDurationMs += deltaMs;
+            if (speechDurationMs > 500 && !isSpeaking) {
+              isSpeaking = true;
+              emitTelemetryEvent('SPOKEN_AUDIO_DETECTED', {
+                model: 'WebAudio_VAD',
+                energy: Math.round(avgEnergy),
+                detail: 'Acoustic vocal energy / speaking detected in exam room'
+              });
+              setWarningToast('⚠️ Acoustic speech / whispering detected in room.');
+            }
+          } else {
+            speechDurationMs = Math.max(0, speechDurationMs - deltaMs * 1.5);
+            if (speechDurationMs === 0 && isSpeaking) {
+              isSpeaking = false;
+            }
+          }
+
+          animFrameId = requestAnimationFrame(checkAudio);
+        };
+
+        checkAudio();
+      } catch (err) {
+        console.debug('Microphone VAD initialization error:', err);
+      }
+    };
+
+    startAudioMonitoring();
+
+    return () => {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      if (micStream) micStream.getTracks().forEach(t => t.stop());
+      if (audioCtx && audioCtx.state !== 'closed') audioCtx.close().catch(() => {});
+    };
+  }, [step]);
 
   // Secondary camera polling
   useEffect(() => {
@@ -942,6 +1041,21 @@ export default function App() {
     }
   };
 
+  const handleQuitApp = async () => {
+    try {
+      if (window.electronAPI?.quitApp) {
+        await window.electronAPI.quitApp();
+      } else if (window.electronAPI?.exitLockdown) {
+        await window.electronAPI.exitLockdown();
+        window.close();
+      } else {
+        window.close();
+      }
+    } catch (e) {
+      window.close();
+    }
+  };
+
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -954,17 +1068,18 @@ export default function App() {
 
   if (qrMode === 'ngrok' && networkInfo.ngrokUrl) {
     const ngrokClean = networkInfo.ngrokUrl.replace(/\/$/, '');
-    const ngrokHost = ngrokClean.replace(/^https?:\/\//, '');
-    mobilePairingUrl = `${ngrokClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&host=${ngrokHost}`;
+    mobilePairingUrl = `${ngrokClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&backendUrl=${encodeURIComponent(API_BASE)}`;
   } else if (qrMode === 'custom' && customHost.trim()) {
-    const hostClean = customHost.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-    mobilePairingUrl = `http://${hostClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&host=${hostClean}`;
+    let hostClean = customHost.trim().replace(/\/$/, '');
+    if (!hostClean.startsWith('http://') && !hostClean.startsWith('https://')) {
+      hostClean = `http://${hostClean}`;
+    }
+    mobilePairingUrl = `${hostClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&backendUrl=${encodeURIComponent(API_BASE)}`;
   } else {
     // Mode: 'wifi' (Direct LAN IP)
     const lanIp = networkInfo.localIp || window.location.hostname || '127.0.0.1';
     const clientPort = networkInfo.studentPort || 5173;
-    const bePort = networkInfo.backendPort || 4000;
-    mobilePairingUrl = `http://${lanIp}:${clientPort}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&host=${lanIp}:${bePort}`;
+    mobilePairingUrl = `http://${lanIp}:${clientPort}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&backendUrl=${encodeURIComponent(API_BASE)}`;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -1011,13 +1126,32 @@ export default function App() {
             <div><strong style={{ color: 'var(--chalk)' }}>STUDENT ID:</strong> {studentId}</div>
             <div><strong style={{ color: 'var(--chalk)' }}>STATUS:</strong> <span style={{ color: 'var(--signal-red)', fontWeight: 700 }}>TERMINATED</span></div>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="btn-ghost"
-            style={{ width: '100%', padding: '12px', borderColor: 'var(--border-subtle)', cursor: 'pointer' }}
-          >
-            Close Assessment Session
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              onClick={handleQuitApp}
+              className="btn-danger"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '0.88rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              <LogOut size={16} />
+              Quit Application Completely
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-ghost"
+              style={{ width: '100%', padding: '10px', fontSize: '0.8rem', borderColor: 'var(--border-subtle)', cursor: 'pointer' }}
+            >
+              Return to Check-in
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1509,29 +1643,21 @@ export default function App() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button
-              onClick={async () => {
-                if (window.electronAPI?.quitApp) {
-                  await window.electronAPI.quitApp();
-                } else if (window.electronAPI?.exitLockdown) {
-                  await window.electronAPI.exitLockdown();
-                  window.close();
-                } else {
-                  window.close();
-                }
-              }}
+              onClick={handleQuitApp}
               className="btn-danger"
               style={{
                 width: '100%',
-                padding: '11px',
-                fontSize: '0.85rem',
+                padding: '12px',
+                fontSize: '0.88rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px'
+                gap: '8px',
+                cursor: 'pointer'
               }}
             >
-              <LogOut size={15} />
-              Quit application
+              <LogOut size={16} />
+              Quit Application Completely
             </button>
 
             <button

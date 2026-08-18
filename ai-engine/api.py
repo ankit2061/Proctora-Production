@@ -111,6 +111,7 @@ def run_frame_analysis(frame: np.ndarray) -> dict:
         "gaze_away": False,
         "gaze_desk": False,
         "mouth_movement": False,
+        "mouth_covered": False,
         "absent": False,
         "face_count": 0,
         "head_pose": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
@@ -122,7 +123,7 @@ def run_frame_analysis(frame: np.ndarray) -> dict:
     except Exception as e:
         print(f"[YOLOv8 Detection Error]: {e}")
 
-    # 2. Persons / Gaze / Mouth (MediaPipe 3D SolvePnP & Face Mesh)
+    # 2. Persons / Gaze / Mouth / Hands (MediaPipe 3D SolvePnP, Face Mesh & Hands)
     try:
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_stats = proctor._analyze_mediapipe(rgb)
@@ -130,6 +131,7 @@ def run_frame_analysis(frame: np.ndarray) -> dict:
         face_count = mp_stats.get("face_count", 0)
         analysis["face_count"] = face_count
         analysis["head_pose"] = mp_stats.get("head_pose", {"yaw": 0.0, "pitch": 0.0, "roll": 0.0})
+        analysis["mouth_covered"] = mp_stats.get("mouth_covered", False)
 
         if face_count == 0:
             analysis["absent"] = True

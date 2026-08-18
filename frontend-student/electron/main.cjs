@@ -110,16 +110,20 @@ ipcMain.handle('exit-lockdown', () => {
 });
 
 ipcMain.handle('quit-app', () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    try {
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setKiosk(false);
       mainWindow.setFullScreen(false);
       mainWindow.setSimpleFullScreen(false);
       mainWindow.setAlwaysOnTop(false);
-    } catch (e) {}
+      mainWindow.destroy();
+    }
+  } catch (e) {}
+  try {
     globalShortcut.unregisterAll();
-  }
+  } catch (e) {}
   app.quit();
+  app.exit(0);
   return { success: true };
 });
 

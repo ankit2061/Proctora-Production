@@ -165,7 +165,7 @@ class ExamProctor:
             )
         logger.info("ChromaDB collections ready.")
 
-        # MediaPipe Setup for zero-latency face tracking
+        # MediaPipe Setup for zero-latency face tracking & hand-over-mouth detection
         import mediapipe as mp
         self.mp = mp
         try:
@@ -182,6 +182,20 @@ class ExamProctor:
         except Exception as e:
             logger.warning(f"MediaPipe face_mesh error: {e}")
             self.face_mesh = None
+
+        try:
+            if hasattr(mp, 'solutions') and hasattr(mp.solutions, 'hands'):
+                self.hands = mp.solutions.hands.Hands(
+                    max_num_hands=2,
+                    min_detection_confidence=0.35,
+                    min_tracking_confidence=0.35
+                )
+                logger.info("MediaPipe Hands detector loaded ✓")
+            else:
+                self.hands = None
+        except Exception as e:
+            logger.warning(f"MediaPipe hands error: {e}")
+            self.hands = None
         self._haar = None
         self.facemark = None
 
@@ -430,6 +444,7 @@ class ExamProctor:
             "face_count": 0,
             "gaze_away": False,
             "mouth_open": False,
+            "mouth_covered": False,
             "head_pose": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
         }
         if self.face_mesh is None:
@@ -540,6 +555,35 @@ class ExamProctor:
                             analysis["gaze_away"] = True
             except Exception:
                 pass
+
+            # 4. Hand-over-Mouth / Mouth Covering Detection
+            if self.hands is not None:
+                try:
+                    hands_res = self.hands.process(rgb_frame)
+                    if hands_res and hands_res.multi_hand_landmarks:
+                        m_left = min(landmarks[61].x, landmarks[291].x) - 0.05
+                        m_right = max(landmarks[61].x, landmarks[291].x) + 0.05
+                        m_top = min(landmarks[1].y, landmarks[13].y) - 0.03
+                        m_bottom = max(landmarks[152].y, landmarks[14].y) + 0.03
+                        m_center_x = (landmarks[61].x + landmarks[291].x) / 2.0
+                        m_center_y = (landmarks[13].y + landmarks[14].y) / 2.0
+                        face_scale = max(abs(landmarks[152].y - landmarks[10].y), 0.15)
+
+                        for hand_lms in hands_res.multi_hand_landmarks:
+                            key_pts = [0, 4, 5, 8, 9, 12, 16, 20]
+                            for idx in key_pts:
+                                h_pt = hand_lms.landmark[idx]
+                                if m_left <= h_pt.x <= m_right and m_top <= h_pt.y <= m_bottom:
+                                    analysis["mouth_covered"] = True
+                                    break
+                                d = np.sqrt((h_pt.x - m_center_x)**2 + (h_pt.y - m_center_y)**2)
+                                if d < (0.28 * face_scale):
+                                    analysis["mouth_covered"] = True
+                                    break
+                            if analysis["mouth_covered"]:
+                                break
+                except Exception as e:
+                    logger.debug(f"Hands detection error: {e}")
 
         except Exception as e:
             logger.debug(f"MediaPipe process error: {e}")
