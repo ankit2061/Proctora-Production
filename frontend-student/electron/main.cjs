@@ -136,6 +136,48 @@ ipcMain.handle('get-system-info', () => {
   };
 });
 
+ipcMain.handle('get-network-info', async () => {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  let localIp = '127.0.0.1';
+  const availableIps = [];
+
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        availableIps.push({ iface: name, ip: iface.address });
+        if (iface.address.startsWith('192.168.')) {
+          localIp = iface.address; // prioritize standard home Wi-Fi LAN
+        } else if (localIp === '127.0.0.1' || iface.address.startsWith('172.') || iface.address.startsWith('10.')) {
+          if (localIp === '127.0.0.1') localIp = iface.address;
+        }
+      }
+    }
+  }
+
+  let ngrokUrl = null;
+  try {
+    const ngrokRes = await fetch('http://127.0.0.1:4040/api/tunnels', { signal: AbortSignal.timeout(1000) });
+    if (ngrokRes.ok) {
+      const data = await ngrokRes.json();
+      const httpsTunnel = (data.tunnels || []).find(t => t.proto === 'https');
+      if (httpsTunnel) {
+        ngrokUrl = httpsTunnel.public_url;
+      }
+    }
+  } catch (e) {}
+
+  return {
+    localIp,
+    availableIps,
+    studentPort: 5173,
+    backendPort: 4000,
+    aiPort: 5001,
+    ngrokUrl,
+    hasNgrok: Boolean(ngrokUrl)
+  };
+});
+
 app.whenReady().then(() => {
   // Grant camera & microphone permissions automatically
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {

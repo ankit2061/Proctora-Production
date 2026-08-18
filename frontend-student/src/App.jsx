@@ -484,18 +484,56 @@ export default function App() {
     if (window.electronAPI) {
       setIsElectron(true);
     }
-    const fetchNetworkInfo = async () => {
+
+    const resolveNetwork = async () => {
+      // 1. In Electron: query local OS network interfaces & tunnels directly
+      if (window.electronAPI?.getNetworkInfo) {
+        try {
+          const info = await window.electronAPI.getNetworkInfo();
+          if (info && info.localIp) {
+            setNetworkInfo(info);
+            if (info.hasNgrok) {
+              setQrMode('ngrok');
+            }
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 2. In Browser: query local ngrok tunnel API
+      try {
+        const ngrokRes = await fetch('http://127.0.0.1:4040/api/tunnels', { signal: AbortSignal.timeout(1000) });
+        if (ngrokRes.ok) {
+          const data = await ngrokRes.json();
+          const httpsTunnel = (data.tunnels || []).find(t => t.proto === 'https');
+          if (httpsTunnel) {
+            setNetworkInfo(prev => ({
+              ...prev,
+              ngrokUrl: httpsTunnel.public_url,
+              hasNgrok: true
+            }));
+            setQrMode('ngrok');
+          }
+        }
+      } catch (e) {}
+
+      // 3. Fallback: try backend network-info
       try {
         const res = await fetch(`${API_BASE}/network-info`);
         if (res.ok) {
           const data = await res.json();
-          setNetworkInfo(data);
+          setNetworkInfo(prev => ({
+            ...prev,
+            ...data,
+            localIp: (data.localIp && !data.localIp.startsWith('10.')) ? data.localIp : (window.location.hostname || '127.0.0.1')
+          }));
         }
       } catch (err) {
         console.debug('Network info fetch fallback:', err);
       }
     };
-    fetchNetworkInfo();
+
+    resolveNetwork();
   }, []);
 
   // Camera init

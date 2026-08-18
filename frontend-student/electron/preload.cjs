@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exitLockdown: () => ipcRenderer.invoke('exit-lockdown'),
   quitApp: () => ipcRenderer.invoke('quit-app'),
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  getNetworkInfo: () => ipcRenderer.invoke('get-network-info'),
   onOSEvent: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('os-event', handler);
