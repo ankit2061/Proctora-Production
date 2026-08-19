@@ -10,7 +10,8 @@
     "electron:dev": "concurrently -k \"vite --port 5173\" \"wait-on tcp:5173 && electron .\"",
     "build": "vite build",
     "build:mac": "npm run build && npx electron-builder --mac",
-    "build:win": "npm run build && npx electron-builder --win",
+    "build:win": "npm run build && npx electron-builder --win --x64",
+    "build:win:arm64": "npm run build && npx electron-builder --win --arm64",
     "preview": "vite preview",
     "lint": "eslint ."
   },
