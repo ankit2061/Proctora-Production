@@ -1,10 +1,10 @@
-# 🛡️ Proctora: Multi-Modal In-House Remote Exam Proctoring Ecosystem
+# Proctora: Multi-Modal In-House Remote Exam Proctoring Ecosystem
 
 **Proctora** is a high-performance, in-house remote exam proctoring platform featuring native kiosk lockdown, real-time local computer vision AI (<30ms latency), acoustic anomaly detection, and direct mobile desk pairing over LAN/Ngrok.
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TD
@@ -34,7 +34,7 @@ graph TD
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 ├── ai-engine/                  # Local Python 3.12 Vision AI (YOLOv8 + MediaPipe 3D Pose + DeepFace)
@@ -63,7 +63,7 @@ graph TD
 
 ---
 
-## ⚡ Quick Start (Local Development)
+##  Quick Start (Local Development)
 
 ### 1. Prerequisites
 - **Node.js**: v18+ or v20+
@@ -95,7 +95,7 @@ npm run dev
 
 For modular testing, debugging, or running specific components individually, open separate terminal windows for each service:
 
-#### 🧠 A. Python AI Engine Microservice (YOLOv8 + MediaPipe + DINOv2)
+#### A. Python AI Engine Microservice (YOLOv8 + MediaPipe + DINOv2)
 ```bash
 cd ai-engine
 
@@ -113,7 +113,7 @@ python3 api.py
 
 ---
 
-#### ⚙️ B. Node.js Backend Server (REST API & SQLite)
+#### B. Node.js Backend Server (REST API & SQLite)
 ```bash
 cd backend
 
@@ -127,7 +127,7 @@ npm run dev
 
 ---
 
-#### 💻 C. Student Desktop Kiosk App (Electron + React)
+#### C. Student Desktop Kiosk App (Electron + React)
 ```bash
 cd frontend-student
 
@@ -145,7 +145,7 @@ npm run dev
 
 ---
 
-#### 🛡️ D. Invigilator Admin Dashboard (React)
+#### D. Invigilator Admin Dashboard (React)
 ```bash
 cd frontend-admin
 
@@ -171,7 +171,7 @@ npm run dev
 
 ---
 
-## 🌐 Cloud Hosting & Deployment Guide
+## Cloud Hosting & Deployment Guide
 
 ### A. Database (Supabase PostgreSQL)
 1. Create a free project at [Supabase](https://supabase.com).
@@ -215,7 +215,7 @@ Installers will be generated in `frontend-student/dist-electron/`. Direct mobile
 
 ---
 
-## 🔒 Security & Proctoring Capabilities
+## Security & Proctoring Capabilities
 
 | Feature | Technology | Behavior |
 |---|---|---|
@@ -229,5 +229,5 @@ Installers will be generated in `frontend-student/dist-electron/`. Direct mobile
 
 ---
 
-## 📜 License
+## License
 MIT License. Created for Proctora Assessment Systems.
