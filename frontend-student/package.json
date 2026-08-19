@@ -38,17 +38,22 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "!**/.*",
       "!**/._*"
     ],
-    "asar": false,
+    "asar": true,
     "mac": {
       "target": "dmg",
       "icon": "electron/icon.icns",
       "category": "public.app-category.education"
     },
     "win": {
-      "target": "nsis",
-      "icon": "electron/icon.png"
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "electron/icon.png",
+      "signAndEditExecutable": false
     }
   }
 }
