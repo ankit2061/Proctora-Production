@@ -230,4 +230,5 @@ Installers will be generated in `frontend-student/dist-electron/`. Direct mobile
 ---
 
 ## License
-MIT License. Created for Proctora Assessment Systems.
+This project is open-source and licensed under the [MIT License](LICENSE).
+Copyright (c) 2026 Ankit Talukder.

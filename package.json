@@ -2,6 +2,8 @@
   "name": "proctora-ecosystem",
   "version": "1.0.0",
   "description": "Multi-Modal AI-Powered Remote Exam Proctoring System with Dual-Camera Real-Time Verification",
+  "author": "Ankit Talukder",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "install:all": "npm install && npm --prefix backend install && npm --prefix frontend-student install && npm --prefix frontend-admin install",

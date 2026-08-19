@@ -2,6 +2,8 @@
   "name": "proctora-frontend-student",
   "private": true,
   "version": "0.1.0",
+  "author": "Ankit Talukder",
+  "license": "MIT",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
