@@ -190,6 +190,7 @@
       border: 1.5px solid var(--primary);
       border-radius: 50%;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
@@ -204,7 +205,6 @@
     }
 
     .verify-stamp span { display: block; }
-    .verify-stamp .stamp-check { font-size: 1rem; margin-bottom: 2px; }
 
     .hero-title {
       font-family: var(--font-serif);
@@ -347,17 +347,21 @@
     .card:hover { border-color: var(--line-strong); transform: translateY(-2px); box-shadow: 0 14px 28px -22px rgba(22, 36, 28, 0.4); }
 
     .card-icon {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       border-radius: 6px;
       background: var(--bg-tab);
       border: 1px solid var(--line);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.2rem;
       margin-bottom: 18px;
+      color: var(--ink-soft);
     }
+
+    .card:nth-child(1) .card-icon { background: var(--primary-soft); border-color: rgba(11, 110, 82, 0.3); color: var(--primary-dark); }
+    .card:nth-child(2) .card-icon { background: var(--steel-soft); border-color: rgba(51, 82, 107, 0.3); color: var(--steel); }
+    .card:nth-child(3) .card-icon { background: var(--amber-soft); border-color: rgba(156, 100, 7, 0.3); color: var(--amber); }
 
     .card-title { font-family: var(--font-serif); font-size: 1.28rem; font-weight: 600; margin-bottom: 10px; color: var(--ink); }
     .card-text { color: var(--ink-soft); font-size: 0.9rem; line-height: 1.6; margin-bottom: 18px; flex: 1; }
@@ -514,7 +518,7 @@
 
         <div class="ticket-body">
           <div class="verify-stamp">
-            <span class="stamp-check">✓</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 2px;" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
             <span>Verified</span>
             <span>System</span>
           </div>
@@ -570,7 +574,9 @@
         <!-- 1. Student Desktop Kiosk -->
         <div class="card">
           <span class="card-tab">Station 01</span>
-          <div class="card-icon">🖥️</div>
+          <div class="card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+          </div>
           <h3 class="card-title">Student Assessment Kiosk</h3>
           <p class="card-text">
             Standalone native desktop station with full OS lockdown, blocking system shortcuts (Alt+Tab, Cmd+W, DevTools), running in-house AI vision and microphone audio VAD.
@@ -602,7 +608,9 @@
         <!-- 2. Smartphone Desk Camera -->
         <div class="card">
           <span class="card-tab">Device 02</span>
-          <div class="card-icon">📱</div>
+          <div class="card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          </div>
           <h3 class="card-title">Mobile Desk Camera Companion</h3>
           <p class="card-text">
             Turn any iOS or Android phone into an instant 360° side/desk camera companion with sub-50ms latency. No App Store download required — scans directly from the desktop screen.
@@ -628,7 +636,9 @@
         <!-- 3. Invigilator Control Room -->
         <div class="card">
           <span class="card-tab">Console 03</span>
-          <div class="card-icon">🛡️</div>
+          <div class="card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+          </div>
           <h3 class="card-title">Invigilator Command Center</h3>
           <p class="card-text">
             Real-time web monitoring console for proctors. Live candidate risk score dials (0–100), dual video streaming tiles, instant incident log, and 1-click candidate exam termination.
