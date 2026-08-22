@@ -43,7 +43,7 @@
       "!**/.*",
       "!**/._*"
     ],
-    "asar": true,
+    "asar": false,
     "mac": {
       "target": "dmg",
       "icon": "electron/icon.icns",
@@ -51,11 +51,18 @@
     },
     "win": {
       "target": [
-        "portable",
         "nsis"
       ],
-      "icon": "electron/icon.png",
-      "signAndEditExecutable": false
+      "icon": "electron/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Proctora Student",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     }
   }
 }
