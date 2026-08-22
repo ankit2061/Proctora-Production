@@ -1,0 +1,130 @@
+name: Build & Publish Proctora Desktop Installers
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'ai-engine/requirements.txt'
+
+      - name: Install Python AI Dependencies
+        run: |
+          cd ai-engine
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Install Node Dependencies
+        run: npm run install:all
+
+      - name: Build Standalone AI Engine & Windows Installer (.exe)
+        run: |
+          cd frontend-student
+          npm run build:win:all
+
+      - name: Upload Windows Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Proctora-Student-Windows-Setup
+          path: frontend-student/dist-electron/*.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'ai-engine/requirements.txt'
+
+      - name: Install Python AI Dependencies
+        run: |
+          cd ai-engine
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Install Node Dependencies
+        run: npm run install:all
+
+      - name: Build Standalone AI Engine & macOS Installer (.dmg)
+        run: |
+          cd frontend-student
+          npm run build:mac:all
+
+      - name: Upload macOS DMG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Proctora-Student-macOS-DMG
+          path: frontend-student/dist-electron/*.dmg
+
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Proctora-Student-Windows-Setup
+          path: release-assets/
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Proctora-Student-macOS-DMG
+          path: release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          name: Proctora Candidate Station ${{ github.ref_name }}
+          body: |
+            ## Proctora Desktop Assessment Station Release
+
+            ### Downloads:
+            - **Windows**: `Proctora-Student-Setup-*.exe` (Standalone 100% In-House AI bundled with YOLOv8 & PyTorch)
+            - **macOS**: `Proctora-Student-*.dmg`
+
+            ### Key Features in this Build:
+            - **In-House Local AI**: Zero-latency YOLOv8 Contraband Detection & MediaPipe 3D Pose on `http://127.0.0.1:5001`.
+            - **Windows Kiosk Lockdown**: Full OS lockdown with Administrator elevation prompt and UAC integration.
+            - **Seamless Phone Desk Camera**: Dual-camera desk streaming over LAN or Ngrok tunnel reverse proxy.
+          draft: false
+          prerelease: false
