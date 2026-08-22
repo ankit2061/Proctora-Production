@@ -100,13 +100,22 @@ router.get('/network-info', async (req, res) => {
   let localIp = '127.0.0.1';
   const availableIps = [];
 
+  const virtualKeywords = ['virtual', 'vbox', 'wsl', 'vethernet', 'hyper-v', 'vmware', 'bluetooth', 'tap', 'loopback', 'npcap', 'docker'];
+
   for (const name of Object.keys(interfaces)) {
+    const lowerName = name.toLowerCase();
+    const isVirtual = virtualKeywords.some(kw => lowerName.includes(kw));
+
     for (const iface of interfaces[name]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        availableIps.push({ iface: name, ip: iface.address });
-        // Prioritize Wi-Fi (en0 / wlan0) or standard 192.168 / 10.x subnets
-        if (localIp === '127.0.0.1' || name.startsWith('en') || name.startsWith('wl') || name.startsWith('eth')) {
-          localIp = iface.address;
+        availableIps.push({ iface: name, ip: iface.address, isVirtual });
+        if (!isVirtual) {
+          const isWifiOrEth = lowerName.includes('wi-fi') || lowerName.includes('wlan') || lowerName.includes('wireless') || lowerName.includes('ethernet') || lowerName.startsWith('en') || lowerName.startsWith('eth');
+          if (isWifiOrEth && iface.address.startsWith('192.168.')) {
+            localIp = iface.address;
+          } else if (localIp === '127.0.0.1' || (!localIp.startsWith('192.168.') && (iface.address.startsWith('192.168.') || iface.address.startsWith('10.')))) {
+            localIp = iface.address;
+          }
         }
       }
     }
@@ -114,18 +123,23 @@ router.get('/network-info', async (req, res) => {
 
   let ngrokUrl = customTunnelUrl || process.env.NGROK_URL || null;
   let ngrokTunnels = [];
-  try {
-    const ngrokRes = await fetch('http://127.0.0.1:4040/api/tunnels', { signal: AbortSignal.timeout(1000) });
-    if (ngrokRes.ok) {
-      const data = await ngrokRes.json();
-      ngrokTunnels = data.tunnels || [];
-      const httpsTunnel = ngrokTunnels.find(t => t.proto === 'https');
-      if (httpsTunnel) {
-        ngrokUrl = httpsTunnel.public_url;
+  const ngrokEndpoints = ['http://127.0.0.1:4040/api/tunnels', 'http://localhost:4040/api/tunnels'];
+
+  for (const endpoint of ngrokEndpoints) {
+    try {
+      const ngrokRes = await fetch(endpoint, { signal: AbortSignal.timeout(1200) });
+      if (ngrokRes.ok) {
+        const data = await ngrokRes.json();
+        ngrokTunnels = data.tunnels || [];
+        const httpsTunnel = ngrokTunnels.find(t => t.proto === 'https');
+        if (httpsTunnel) {
+          ngrokUrl = httpsTunnel.public_url;
+          break;
+        }
       }
+    } catch (err) {
+      // ngrok local API not running on this endpoint
     }
-  } catch (err) {
-    // ngrok local API not running
   }
 
   res.json({

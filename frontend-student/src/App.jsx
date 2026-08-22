@@ -27,7 +27,8 @@ import {
   Copy,
   ExternalLink,
   Zap,
-  Radio
+  Radio,
+  ShieldAlert
 } from 'lucide-react';
 import proctoraLogo from './assets/logo.png';
 
@@ -177,7 +178,7 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
         const searchParams = new URLSearchParams(window.location.search);
         const targetBackend = searchParams.get('backendUrl') || searchParams.get('host') || backendHost;
 
-        if (targetBackend) {
+        if (targetBackend && !targetBackend.includes('localhost') && !targetBackend.includes('127.0.0.1')) {
           let cleanUrl = targetBackend.replace(/\/$/, '');
           if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
             const proto = cleanUrl.includes('ngrok') || window.location.protocol === 'https:' ? 'https:' : 'http:';
@@ -186,6 +187,7 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
           if (!cleanUrl.endsWith('/api')) cleanUrl = `${cleanUrl}/api`;
           endpoint = `${cleanUrl}/sessions/${sessionId}/secondary-stream`;
         } else {
+          // If accessing via Ngrok tunnel, Vite proxy, or packaged embedded server, route via current origin
           endpoint = `${window.location.origin}/api/sessions/${sessionId}/secondary-stream`;
         }
 
@@ -601,6 +603,11 @@ export default function App() {
     ngrokUrl: null,
     hasNgrok: false
   });
+  const [adminStatus, setAdminStatus] = useState({
+    isAdmin: true,
+    isWindows: false,
+    promptDismissed: false
+  });
   const [qrMode, setQrMode] = useState('wifi'); // 'wifi' | 'ngrok' | 'cloud' | 'custom'
   const [customHost, setCustomHost] = useState('');
   const [manualNgrokUrl, setManualNgrokUrl] = useState('');
@@ -653,10 +660,21 @@ export default function App() {
   const absentConsecutiveRef = useRef(0);
   const multiplePersonsConsecutiveRef = useRef(0);
 
-  // Detect Electron & Fetch LAN Info
+  // Detect Electron & Fetch LAN Info + Admin Privilege
   useEffect(() => {
     if (window.electronAPI) {
       setIsElectron(true);
+      if (window.electronAPI.getAdminStatus) {
+        window.electronAPI.getAdminStatus().then(status => {
+          if (status) {
+            setAdminStatus(prev => ({
+              ...prev,
+              isAdmin: Boolean(status.isAdmin),
+              isWindows: Boolean(status.isWindows)
+            }));
+          }
+        }).catch(() => {});
+      }
     }
 
     const resolveNetwork = async () => {
@@ -1370,14 +1388,16 @@ export default function App() {
     const targetNgrok = networkInfo.ngrokUrl || (manualNgrokUrl.trim() ? manualNgrokUrl.trim() : null);
     if (targetNgrok) {
       const ngrokClean = targetNgrok.replace(/\/$/, '');
-      mobilePairingUrl = `${ngrokClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&backendUrl=${encodeURIComponent(API_BASE)}`;
+      // If local API_BASE is localhost, route phone traffic directly through ngrok /api reverse proxy
+      const effectiveBackend = (API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')) ? `${ngrokClean}/api` : API_BASE;
+      mobilePairingUrl = `${ngrokClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&backendUrl=${encodeURIComponent(effectiveBackend)}`;
     } else {
       const lanIp = networkInfo.localIp || window.location.hostname || '127.0.0.1';
       const clientPort = networkInfo.studentPort || 5173;
       mobilePairingUrl = `http://${lanIp}:${clientPort}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&backendUrl=${encodeURIComponent(API_BASE)}`;
     }
   } else if (qrMode === 'cloud') {
-    const cloudBase = customCompanionUrl.trim() || 'https://dfm-frontend-01-11-25.vercel.app';
+    const cloudBase = customCompanionUrl.trim() || import.meta.env.VITE_COMPANION_URL || 'https://proctora-student.vercel.app';
     const cloudClean = cloudBase.replace(/\/$/, '');
     mobilePairingUrl = `${cloudClean}/?mode=mobile&sessionId=${currentSessionKey}&studentId=${studentId}&backendUrl=${encodeURIComponent(API_BASE)}`;
   } else if (qrMode === 'custom' && customHost.trim()) {
@@ -1516,6 +1536,81 @@ export default function App() {
               </span>
             </div>
           </div>
+
+          {/* Windows Administrator Privilege Banner */}
+          {adminStatus.isWindows && !adminStatus.isAdmin && !adminStatus.promptDismissed && (
+            <div style={{
+              background: 'rgba(224, 78, 67, 0.08)',
+              border: '1px solid rgba(224, 78, 67, 0.35)',
+              borderRadius: '6px',
+              padding: '14px 18px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: 'rgba(224, 78, 67, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--signal-red)',
+                  flexShrink: 0
+                }}>
+                  <ShieldAlert size={20} />
+                </div>
+                <div>
+                  <div style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    color: 'var(--chalk)',
+                    letterSpacing: '0.04em',
+                    marginBottom: '2px'
+                  }}>
+                    ADMINISTRATOR PRIVILEGES RECOMMENDED · WINDOWS KIOSK
+                  </div>
+                  <div style={{ color: 'var(--chalk-dim)', fontSize: '0.78rem', lineHeight: 1.35 }}>
+                    To enforce full OS lockdown (blocking <kbd style={{ background: 'rgba(255,255,255,0.1)', padding: '1px 4px', borderRadius: '3px', color: 'var(--chalk)' }}>Alt+Tab</kbd>, Windows Key, and app switching), run Proctora as Administrator.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <button
+                  onClick={() => {
+                    if (window.electronAPI?.relaunchAsAdmin) {
+                      window.electronAPI.relaunchAsAdmin();
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{
+                    background: 'var(--signal-red)',
+                    borderColor: 'var(--signal-red)',
+                    padding: '6px 14px',
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Zap size={13} /> Relaunch as Admin
+                </button>
+                <button
+                  onClick={() => setAdminStatus(prev => ({ ...prev, promptDismissed: true }))}
+                  className="btn-ghost"
+                  style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 3-Step Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' }}>
@@ -1771,7 +1866,7 @@ export default function App() {
                 <div style={{ marginBottom: '8px' }}>
                   <input
                     type="text"
-                    placeholder="https://dfm-frontend-01-11-25.vercel.app"
+                    placeholder="https://proctora-student.vercel.app"
                     value={customCompanionUrl}
                     onChange={(e) => setCustomCompanionUrl(e.target.value)}
                     style={{

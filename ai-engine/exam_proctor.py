@@ -201,8 +201,19 @@ class ExamProctor:
 
         try:
             from ultralytics import YOLO
-            self.yolo = YOLO("yolov8n.pt")
-            logger.info("YOLOv8 Contraband detector loaded ✓")
+            cur_dir = os.path.dirname(os.path.abspath(__file__))
+            candidate_paths = [
+                os.path.join(cur_dir, "yolov8n.pt"),
+                os.path.join(cur_dir, "..", "yolov8n.pt"),
+                "yolov8n.pt"
+            ]
+            yolo_path = "yolov8n.pt"
+            for p in candidate_paths:
+                if os.path.exists(p):
+                    yolo_path = os.path.abspath(p)
+                    break
+            self.yolo = YOLO(yolo_path)
+            logger.info(f"YOLOv8 Contraband detector loaded from {yolo_path} ✓")
         except Exception as e:
             logger.error(f"Failed to load YOLOv8: {e}")
             self.yolo = None
@@ -614,16 +625,31 @@ class ExamProctor:
             }
             results = self.yolo.predict(frame, verbose=False, conf=0.18)
             if len(results) > 0:
+                names = getattr(self.yolo, 'names', {}) or {}
                 for box in results[0].boxes:
                     cls_id = int(box.cls[0].item())
                     conf = float(box.conf[0].item())
+                    raw_name = str(names.get(cls_id, "")).lower()
+
+                    matched_item = None
                     if cls_id in prohibited_thresholds:
                         item_name, min_conf = prohibited_thresholds[cls_id]
                         if conf >= min_conf:
-                            if item_name not in analysis["detected_objects"]:
-                                analysis["detected_objects"].append(item_name)
-                            if analysis["contraband_detected"] is None:
-                                analysis["contraband_detected"] = item_name
+                            matched_item = item_name
+                    elif ("phone" in raw_name or "cell" in raw_name or "mobile" in raw_name) and conf >= 0.20:
+                        matched_item = "cell phone"
+                    elif "laptop" in raw_name and conf >= 0.30:
+                        matched_item = "laptop"
+                    elif "book" in raw_name and conf >= 0.45:
+                        matched_item = "book"
+                    elif "remote" in raw_name and conf >= 0.30:
+                        matched_item = "remote"
+
+                    if matched_item:
+                        if matched_item not in analysis["detected_objects"]:
+                            analysis["detected_objects"].append(matched_item)
+                        if analysis["contraband_detected"] is None:
+                            analysis["contraband_detected"] = matched_item
 
             # Check multiple persons ONLY via FaceMesh (avoids torso/arm fragmentation false positives)
             if self.face_mesh is not None:
@@ -657,31 +683,50 @@ class ExamProctor:
 
     def _detect_contraband(self, frame) -> Optional[str]:
         """
-        Runs YOLOv8 and checks explicitly for prohibited items (cell phone, laptop, book)
-        with strict confidence thresholds to prevent false positives from background room objects.
+        Runs YOLOv8 and checks explicitly for prohibited items (cell phone, laptop, book, remote)
+        with calibrated confidence thresholds (0.25 for cellphone).
         """
         if self.yolo is None:
             return None
             
         prohibited_thresholds = {
-            67: ("cell phone", 0.40),
-            63: ("laptop", 0.45),
-            73: ("book", 0.50)
+            67: ("cell phone", 0.25),
+            63: ("laptop", 0.35),
+            65: ("remote", 0.30),
+            73: ("book", 0.45)
         }
         
-        results = self.yolo.predict(frame, verbose=False, conf=0.35)
-        if len(results) == 0:
-            return None
-            
-        boxes = results[0].boxes
-        for box in boxes:
-            cls_id = int(box.cls[0].item())
-            conf = float(box.conf[0].item())
-            if cls_id in prohibited_thresholds:
-                name, min_conf = prohibited_thresholds[cls_id]
-                if conf >= min_conf:
-                    return name
+        try:
+            results = self.yolo.predict(frame, verbose=False, conf=0.20)
+            if len(results) == 0:
+                return None
                 
+            boxes = results[0].boxes
+            names = getattr(self.yolo, 'names', {}) or {}
+            
+            for box in boxes:
+                cls_id = int(box.cls[0].item())
+                conf = float(box.conf[0].item())
+                raw_name = str(names.get(cls_id, "")).lower()
+                
+                # Direct class ID match
+                if cls_id in prohibited_thresholds:
+                    name, min_conf = prohibited_thresholds[cls_id]
+                    if conf >= min_conf:
+                        return name
+                
+                # String name matching
+                if ("phone" in raw_name or "cell" in raw_name or "mobile" in raw_name) and conf >= 0.25:
+                    return "cell phone"
+                if "laptop" in raw_name and conf >= 0.35:
+                    return "laptop"
+                if "book" in raw_name and conf >= 0.45:
+                    return "book"
+                if "remote" in raw_name and conf >= 0.30:
+                    return "remote"
+        except Exception as e:
+            logger.debug(f"Contraband detection error: {e}")
+            
         return None
 
     # ─── Silent capture (used by monitor) ─────────────────────────────────

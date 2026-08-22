@@ -33,3 +33,4 @@ Pillow>=10.0.0
 # ─── Advanced Vision (Watcher) ────────────────────────────────────────────────
 mediapipe>=0.10.0
 ultralytics>=8.0.0
+pyinstaller>=6.0.0

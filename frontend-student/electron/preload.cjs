@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   quitApp: () => ipcRenderer.invoke('quit-app'),
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
   getNetworkInfo: () => ipcRenderer.invoke('get-network-info'),
+  getAdminStatus: () => ipcRenderer.invoke('get-admin-status'),
+  relaunchAsAdmin: () => ipcRenderer.invoke('relaunch-as-admin'),
   onOSEvent: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('os-event', handler);

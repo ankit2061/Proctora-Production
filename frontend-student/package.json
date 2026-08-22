@@ -11,8 +11,11 @@
     "electron": "electron .",
     "electron:dev": "concurrently -k \"vite --port 5173\" \"wait-on tcp:5173 && electron .\"",
     "build": "vite build",
+    "build:ai": "node ../scripts/build-ai-binary.js",
     "build:mac": "npm run build && npx electron-builder --mac",
+    "build:mac:all": "npm run build:ai && npm run build && npx electron-builder --mac",
     "build:win": "npm run build && npx electron-builder --win --x64",
+    "build:win:all": "npm run build:ai && npm run build && npx electron-builder --win --x64",
     "build:win:arm64": "npm run build && npx electron-builder --win --arm64",
     "preview": "vite preview",
     "lint": "eslint ."
@@ -43,6 +46,17 @@
       "!**/.*",
       "!**/._*"
     ],
+    "extraResources": [
+      {
+        "from": "../ai-engine/dist/proctora-ai",
+        "to": "proctora-ai",
+        "filter": [
+          "**/*",
+          "!**/._*",
+          "!**/.*"
+        ]
+      }
+    ],
     "asar": false,
     "mac": {
       "target": "dmg",
@@ -53,7 +67,8 @@
       "target": [
         "nsis"
       ],
-      "icon": "electron/icon.png"
+      "icon": "electron/icon.png",
+      "requestedExecutionLevel": "highestAvailable"
     },
     "nsis": {
       "oneClick": false,

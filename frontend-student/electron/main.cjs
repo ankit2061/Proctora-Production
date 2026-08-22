@@ -7,8 +7,25 @@ let mainWindow;
 let isLockdownActive = false;
 let embeddedServer = null;
 
+function isWindowsAdmin() {
+  if (process.platform !== 'win32') return true;
+  try {
+    const { execSync } = require('child_process');
+    execSync('net session', { stdio: 'ignore' });
+    return true;
+  } catch (e) {
+    try {
+      const { execSync } = require('child_process');
+      execSync('fsutil dirty query %systemdrive%', { stdio: 'ignore' });
+      return true;
+    } catch (e2) {
+      return false;
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
-// 🌐 EMBEDDED STATIC HTTP SERVER (for direct smartphone QR pairing over Wi-Fi)
+// 🌐 EMBEDDED STATIC HTTP SERVER (for direct smartphone QR pairing over Wi-Fi & Ngrok)
 // ═══════════════════════════════════════════════════════════════════════════
 function startEmbeddedServer(port = 5173) {
   try {
@@ -30,7 +47,7 @@ function startEmbeddedServer(port = 5173) {
     embeddedServer = http.createServer((req, res) => {
       // CORS headers for seamless cross-device streaming
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
       res.setHeader('Access-Control-Allow-Headers', '*');
 
       if (req.method === 'OPTIONS') {
@@ -41,6 +58,33 @@ function startEmbeddedServer(port = 5173) {
 
       const parsedUrl = new URL(req.url, `http://localhost:${port}`);
       let reqPath = parsedUrl.pathname;
+
+      // Reverse proxy /api/* requests to local backend server (port 4000)
+      if (reqPath.startsWith('/api')) {
+        const proxyReq = http.request({
+          hostname: '127.0.0.1',
+          port: 4000,
+          path: req.url,
+          method: req.method,
+          headers: {
+            ...req.headers,
+            host: '127.0.0.1:4000'
+          }
+        }, (proxyRes) => {
+          res.writeHead(proxyRes.statusCode, proxyRes.headers);
+          proxyRes.pipe(res);
+        });
+
+        proxyReq.on('error', (err) => {
+          console.error('[Embedded Server Proxy Error]', err.message);
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'backend_offline', message: 'Local Proctora backend is not reachable on port 4000.' }));
+        });
+
+        req.pipe(proxyReq);
+        return;
+      }
+
       if (reqPath === '/') reqPath = '/index.html';
 
       let filePath = path.join(distPath, reqPath);
@@ -282,6 +326,7 @@ ipcMain.handle('quit-app', () => {
   if (embeddedServer) {
     try { embeddedServer.close(); } catch (e) {}
   }
+  stopBundledAIEngine();
   app.quit();
   app.exit(0);
   return { success: true };
@@ -296,23 +341,66 @@ ipcMain.handle('get-system-info', () => {
   };
 });
 
+ipcMain.handle('get-admin-status', () => {
+  const isAdmin = isWindowsAdmin();
+  return {
+    isAdmin,
+    isWindows: process.platform === 'win32',
+    platform: process.platform
+  };
+});
+
+ipcMain.handle('relaunch-as-admin', () => {
+  if (process.platform === 'win32') {
+    try {
+      const { spawn } = require('child_process');
+      const execPath = process.execPath;
+      const args = process.argv.slice(1);
+
+      // Launch elevated process via PowerShell Start-Process -Verb RunAs
+      const psArgs = args.length > 0 ? `-ArgumentList '${args.map(a => `"${a}"`).join(" ")}'` : '';
+      const psCommand = `Start-Process -FilePath "${execPath}" ${psArgs} -Verb RunAs`;
+
+      spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', psCommand], {
+        detached: true,
+        stdio: 'ignore'
+      }).unref();
+
+      setTimeout(() => {
+        app.quit();
+        app.exit(0);
+      }, 600);
+
+      return { success: true };
+    } catch (err) {
+      console.error('[Admin Relaunch Error]', err);
+      return { success: false, error: err.message };
+    }
+  }
+  return { success: false, error: 'Platform is not Windows' };
+});
+
 ipcMain.handle('get-network-info', async () => {
   const os = require('os');
   const interfaces = os.networkInterfaces();
   let localIp = '127.0.0.1';
   const availableIps = [];
 
+  const virtualKeywords = ['virtual', 'vbox', 'wsl', 'vethernet', 'hyper-v', 'vmware', 'bluetooth', 'tap', 'loopback', 'npcap', 'docker'];
+
   for (const name of Object.keys(interfaces)) {
-    // Filter out virtual/loopback adapters
-    const isVirtual = name.toLowerCase().includes('virtual') || name.toLowerCase().includes('vbox') || name.toLowerCase().includes('wsl');
+    const lowerName = name.toLowerCase();
+    const isVirtual = virtualKeywords.some(kw => lowerName.includes(kw));
+
     for (const iface of interfaces[name]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        availableIps.push({ iface: name, ip: iface.address });
+        availableIps.push({ iface: name, ip: iface.address, isVirtual });
         if (!isVirtual) {
-          if (iface.address.startsWith('192.168.')) {
-            localIp = iface.address; // prioritize standard home/office Wi-Fi
-          } else if (localIp === '127.0.0.1' || iface.address.startsWith('10.') || iface.address.startsWith('172.')) {
-            if (localIp === '127.0.0.1') localIp = iface.address;
+          const isWifiOrEth = lowerName.includes('wi-fi') || lowerName.includes('wlan') || lowerName.includes('wireless') || lowerName.includes('ethernet') || lowerName.startsWith('en') || lowerName.startsWith('eth');
+          if (isWifiOrEth && iface.address.startsWith('192.168.')) {
+            localIp = iface.address;
+          } else if (localIp === '127.0.0.1' || (!localIp.startsWith('192.168.') && (iface.address.startsWith('192.168.') || iface.address.startsWith('10.')))) {
+            localIp = iface.address;
           }
         }
       }
@@ -320,16 +408,21 @@ ipcMain.handle('get-network-info', async () => {
   }
 
   let ngrokUrl = null;
-  try {
-    const ngrokRes = await fetch('http://127.0.0.1:4040/api/tunnels', { signal: AbortSignal.timeout(1000) });
-    if (ngrokRes.ok) {
-      const data = await ngrokRes.json();
-      const httpsTunnel = (data.tunnels || []).find(t => t.proto === 'https');
-      if (httpsTunnel) {
-        ngrokUrl = httpsTunnel.public_url;
+  const ngrokEndpoints = ['http://127.0.0.1:4040/api/tunnels', 'http://localhost:4040/api/tunnels'];
+  for (const endpoint of ngrokEndpoints) {
+    try {
+      const ngrokRes = await fetch(endpoint, { signal: AbortSignal.timeout(1200) });
+      if (ngrokRes.ok) {
+        const data = await ngrokRes.json();
+        const tunnels = data.tunnels || [];
+        const httpsTunnel = tunnels.find(t => t.proto === 'https');
+        if (httpsTunnel) {
+          ngrokUrl = httpsTunnel.public_url;
+          break;
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
+  }
 
   return {
     localIp,
@@ -342,8 +435,69 @@ ipcMain.handle('get-network-info', async () => {
   };
 });
 
+let bundledAiProcess = null;
+
+function startBundledAIEngine() {
+  const { spawn } = require('child_process');
+  const isWin = process.platform === 'win32';
+  const binaryName = isWin ? 'proctora-ai.exe' : 'proctora-ai';
+
+  const possiblePaths = [
+    // Packaged Electron extraResources location
+    path.join(process.resourcesPath, 'proctora-ai', binaryName),
+    path.join(process.resourcesPath, 'proctora-ai', 'proctora-ai', binaryName),
+    // Local development dist location
+    path.join(__dirname, '../../ai-engine/dist/proctora-ai', binaryName),
+    path.join(__dirname, '../ai-engine/dist/proctora-ai', binaryName)
+  ];
+
+  for (const binPath of possiblePaths) {
+    if (fs.existsSync(binPath)) {
+      console.log(`[Bundled AI] Found standalone AI binary at: ${binPath}`);
+      try {
+        bundledAiProcess = spawn(binPath, [], {
+          cwd: path.dirname(binPath),
+          stdio: 'pipe',
+          detached: false,
+          env: {
+            ...process.env,
+            PORT: '5001',
+            PYTHONUNBUFFERED: '1'
+          }
+        });
+
+        bundledAiProcess.stdout.on('data', (data) => console.log(`[Bundled AI stdout] ${data}`));
+        bundledAiProcess.stderr.on('data', (data) => console.error(`[Bundled AI stderr] ${data}`));
+        bundledAiProcess.on('error', (err) => console.error('[Bundled AI Spawn Error]', err));
+        bundledAiProcess.on('exit', (code) => console.log(`[Bundled AI] Process exited with code ${code}`));
+        return;
+      } catch (err) {
+        console.error('[Bundled AI Init Failed]', err);
+      }
+    }
+  }
+  console.log('[Bundled AI] No standalone proctora-ai binary found, using system/dev AI service.');
+}
+
+function stopBundledAIEngine() {
+  if (bundledAiProcess) {
+    try {
+      if (process.platform === 'win32') {
+        const { execSync } = require('child_process');
+        execSync(`taskkill /pid ${bundledAiProcess.pid} /T /F`, { stdio: 'ignore' });
+      } else {
+        bundledAiProcess.kill('SIGTERM');
+      }
+    } catch (e) {}
+    bundledAiProcess = null;
+  }
+}
+
 app.whenReady().then(() => {
-  // Start embedded server for mobile companion pairing
+  // 1. Auto-spawn standalone bundled AI Engine if packaged in installer
+  startBundledAIEngine();
+
+  // 2. Start embedded server for mobile companion pairing
   startEmbeddedServer(5173);
 
   // Grant camera & microphone permissions automatically
@@ -369,6 +523,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   globalShortcut.unregisterAll();
+  stopBundledAIEngine();
   if (embeddedServer) {
     try { embeddedServer.close(); } catch (e) {}
   }
@@ -379,6 +534,7 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  stopBundledAIEngine();
   if (embeddedServer) {
     try { embeddedServer.close(); } catch (e) {}
   }
