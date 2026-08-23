@@ -121,6 +121,8 @@ function startEmbeddedServer(port = 5173) {
 }
 
 function createWindow() {
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
   mainWindow = new BrowserWindow({
     width: 1920,
     height: 1080,
@@ -129,6 +131,7 @@ function createWindow() {
     center: true,
     fullscreen: true,
     kiosk: true,
+    alwaysOnTop: !isDev,
     simpleFullscreen: true,
     minimizable: false,
     resizable: false,
@@ -143,16 +146,21 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      devTools: process.env.NODE_ENV === 'development' || !app.isPackaged
+      devTools: isDev
     }
   });
 
   mainWindow.maximize();
   mainWindow.setFullScreen(true);
   mainWindow.setKiosk(true);
+  
+  if (!isDev) {
+    mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+    mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    isLockdownActive = true;
+  }
+  
   Menu.setApplicationMenu(null);
-
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
   if (isDev) {
     const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173';
@@ -218,6 +226,8 @@ function createWindow() {
       event.preventDefault();
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.restore();
+        mainWindow.show();
+        mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
         mainWindow.focus();
       }
     }
@@ -235,11 +245,13 @@ function createWindow() {
       if (isLockdownActive) {
         setTimeout(() => {
           if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setAlwaysOnTop(true, 'screen-saver');
+            mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+            mainWindow.show();
+            mainWindow.restore();
             mainWindow.moveTop();
             mainWindow.focus();
           }
-        }, 50);
+        }, 15);
       }
     }
   });
@@ -269,9 +281,13 @@ ipcMain.handle('enter-lockdown', () => {
       mainWindow.setSimpleFullScreen(true);
       mainWindow.setFullScreen(true);
       mainWindow.setKiosk(true);
-      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+      mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
       mainWindow.setMinimizable(false);
       mainWindow.setResizable(false);
+      mainWindow.show();
+      mainWindow.restore();
+      mainWindow.moveTop();
       mainWindow.focus();
     } catch (e) {}
 
@@ -281,6 +297,8 @@ ipcMain.handle('enter-lockdown', () => {
       globalShortcut.register('CommandOrControl+Shift+R', () => {});
       globalShortcut.register('CommandOrControl+W', () => {});
       globalShortcut.register('Alt+Tab', () => {});
+      globalShortcut.register('Alt+Escape', () => {});
+      globalShortcut.register('Alt+Space', () => {});
       globalShortcut.register('CommandOrControl+Shift+I', () => {});
       globalShortcut.register('F11', () => {});
       globalShortcut.register('F12', () => {});

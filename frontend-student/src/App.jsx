@@ -113,6 +113,12 @@ function MobileProctorView({ sessionId, studentId, backendHost }) {
   const [errorMsg, setErrorMsg] = useState(null);
 
   const startMobileCamera = async () => {
+    // Check if accessing over insecure HTTP context on mobile
+    if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      setErrorMsg('HTTPS Required: Mobile browsers block camera access on plain HTTP (192.168.x.x). Please scan using the Ngrok (HTTPS) or Cloud companion tab on your exam station.');
+      return;
+    }
+
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
@@ -664,6 +670,9 @@ export default function App() {
   useEffect(() => {
     if (window.electronAPI) {
       setIsElectron(true);
+      if (window.electronAPI.enterLockdown) {
+        window.electronAPI.enterLockdown().then(() => setIsLocked(true)).catch(() => {});
+      }
       if (window.electronAPI.getAdminStatus) {
         window.electronAPI.getAdminStatus().then(status => {
           if (status) {
@@ -1835,6 +1844,22 @@ export default function App() {
                   Custom
                 </button>
               </div>
+
+              {/* Wi-Fi Mode Note */}
+              {qrMode === 'wifi' && (
+                <div style={{
+                  fontSize: '0.62rem',
+                  color: 'var(--amber-watch)',
+                  marginBottom: '8px',
+                  background: 'rgba(230, 126, 34, 0.08)',
+                  padding: '4px 6px',
+                  borderRadius: '3px',
+                  border: '1px solid rgba(230, 126, 34, 0.2)',
+                  lineHeight: 1.3
+                }}>
+                  ℹ️ <strong>Note:</strong> Mobile browsers require <strong>HTTPS</strong> for camera. Switch to <strong>Ngrok</strong> or <strong>Cloud</strong> if your phone blocks camera on Wi-Fi.
+                </div>
+              )}
 
               {/* Ngrok Helper / Manual URL Input if offline */}
               {qrMode === 'ngrok' && !networkInfo.hasNgrok && (
