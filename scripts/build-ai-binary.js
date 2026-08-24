@@ -23,6 +23,20 @@ const isWindows = process.platform === 'win32';
 const pathSep = isWindows ? ';' : ':';
 
 function findPythonCommand() {
+  // 0. Check explicit environment variables (e.g. from CI actions/setup-python or custom PYTHON env)
+  if (process.env.PYTHON && fs.existsSync(process.env.PYTHON)) {
+    return { cmd: process.env.PYTHON, args: [] };
+  }
+  if (process.env.pythonLocation) {
+    const candidate = isWindows
+      ? path.join(process.env.pythonLocation, 'python.exe')
+      : path.join(process.env.pythonLocation, 'bin', 'python');
+    if (fs.existsSync(candidate)) {
+      return { cmd: candidate, args: [] };
+    }
+  }
+
+  // 1. Check local virtual environments inside ai-engine or root
   const venvCandidates = isWindows
     ? [
         path.join(aiDir, '.venv', 'Scripts', 'python.exe'),
@@ -48,11 +62,13 @@ function findPythonCommand() {
     }
   }
 
+  // 2. Check active system python in PATH (configured by setup-python / venv)
   const systemCandidates = isWindows
     ? [
-        { cmd: 'py', args: ['-3'] },
         { cmd: 'python', args: [] },
-        { cmd: 'python3', args: [] }
+        { cmd: 'python3', args: [] },
+        { cmd: 'py', args: ['-3.11'] },
+        { cmd: 'py', args: ['-3'] }
       ]
     : [
         { cmd: 'python3', args: [] },
@@ -139,7 +155,6 @@ const collectArgs = [
   '--collect-all=ultralytics',
   '--collect-all=cv2',
   '--collect-all=mediapipe',
-  '--copy-metadata=ultralytics',
   '--copy-metadata=torch',
   '--copy-metadata=torchvision',
   '--copy-metadata=tqdm',
