@@ -512,7 +512,7 @@
     <section class="hero">
       <div class="hero-ticket">
         <div class="ticket-eyebrow">
-          <span class="eyebrow-left"><span class="badge-pulse"></span> Proctora Ecosystem · v2.0 · Production</span>
+          <span class="eyebrow-left"><span class="badge-pulse"></span> Proctora Ecosystem · <span id="hero-version-tag">v2.1.3</span> · Production</span>
           <span>Issued 2026</span>
         </div>
 
@@ -591,16 +591,16 @@
           </div>
 
           <div class="card-actions">
-            <a href="https://github.com/ankit2061/Proctora-Production/releases/download/v2.0.0/Proctora.Student-0.1.0-arm64.dmg" class="btn-download">
-              <span>macOS Apple Silicon (.dmg)</span>
-              <span>100 MB · ARM64</span>
+            <a id="btn-download-mac" href="https://github.com/ankit2061/Proctora-Production/releases/download/v2.1.3/Proctora.Student-2.1.3-arm64.dmg" class="btn-download">
+              <span id="mac-label">macOS Apple Silicon (.dmg)</span>
+              <span id="mac-size">803 MB · ARM64 (Bundled AI)</span>
             </a>
-            <a href="https://github.com/ankit2061/Proctora-Production/releases/download/v2.0.0/Proctora-Student-Setup-0.1.0.exe" class="btn-download">
-              <span>Windows Installer (.exe)</span>
-              <span>81 MB · x64</span>
+            <a id="btn-download-win" href="https://github.com/ankit2061/Proctora-Production/releases/download/v2.1.3/Proctora.Student-Setup-2.1.3.exe" class="btn-download">
+              <span id="win-label">Windows Installer (.exe)</span>
+              <span id="win-size">1.9 GB · x64 (Bundled AI)</span>
             </a>
-            <a href="https://github.com/ankit2061/Proctora-Production/releases/tag/v2.0.0" target="_blank" style="font-family: var(--font-display); font-size: 0.72rem; text-align: center; color: var(--ink-soft); margin-top: 4px; text-decoration: none;">
-              View all release assets on GitHub &rarr;
+            <a id="btn-download-all" href="https://github.com/ankit2061/Proctora-Production/releases/latest" target="_blank" style="font-family: var(--font-display); font-size: 0.72rem; text-align: center; color: var(--ink-soft); margin-top: 4px; text-decoration: none;">
+              View all release assets on GitHub (<span id="release-tag-text">v2.1.3</span>) &rarr;
             </a>
           </div>
         </div>
@@ -750,13 +750,14 @@
 
       <ul class="footer-links">
         <li><a href="https://github.com/ankit2061/Proctora-Production" target="_blank">GitHub Repository</a></li>
+        <li><a href="https://github.com/ankit2061/Proctora-Production/releases/latest" target="_blank">Latest Releases</a></li>
         <li><a href="https://proctora-admin-two.vercel.app" target="_blank">Invigilator Portal</a></li>
         <li><a href="https://proctora-production.onrender.com/health" target="_blank">Backend Health</a></li>
       </ul>
     </div>
   </footer>
 
-  <!-- Real-time Backend Ping Script -->
+  <!-- Real-time Backend Ping & GitHub Release Resolver Scripts -->
   <script>
     async function checkBackend() {
       const dot = document.getElementById('backend-dot');
@@ -779,6 +780,50 @@
     }
     checkBackend();
     setInterval(checkBackend, 15000);
+
+    // Dynamic GitHub Latest Release Asset Link Resolver
+    async function resolveLatestGithubReleases() {
+      try {
+        const res = await fetch('https://api.github.com/repos/ankit2061/Proctora-Production/releases/latest', {
+          headers: { 'Accept': 'application/vnd.github.v3+json' },
+          signal: AbortSignal.timeout(5000)
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.assets || !Array.isArray(data.assets)) return;
+
+        const tagName = data.tag_name || 'v2.1.3';
+        const heroTag = document.getElementById('hero-version-tag');
+        const releaseTagText = document.getElementById('release-tag-text');
+        if (heroTag) heroTag.textContent = tagName;
+        if (releaseTagText) releaseTagText.textContent = tagName;
+
+        const formatSize = (bytes) => {
+          if (!bytes) return '';
+          if (bytes > 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+          return Math.round(bytes / (1024 * 1024)) + ' MB';
+        };
+
+        const macAsset = data.assets.find(a => a.name && (a.name.endsWith('.dmg') || a.name.includes('mac')));
+        if (macAsset) {
+          const btnMac = document.getElementById('btn-download-mac');
+          const macSize = document.getElementById('mac-size');
+          if (btnMac) btnMac.href = macAsset.browser_download_url;
+          if (macSize) macSize.textContent = `${formatSize(macAsset.size)} · ARM64 (Bundled AI)`;
+        }
+
+        const winAsset = data.assets.find(a => a.name && (a.name.endsWith('.exe') || a.name.includes('Setup')));
+        if (winAsset) {
+          const btnWin = document.getElementById('btn-download-win');
+          const winSize = document.getElementById('win-size');
+          if (btnWin) btnWin.href = winAsset.browser_download_url;
+          if (winSize) winSize.textContent = `${formatSize(winAsset.size)} · x64 (Bundled AI)`;
+        }
+      } catch (err) {
+        console.debug('GitHub releases dynamic resolver using static fallback links', err);
+      }
+    }
+    resolveLatestGithubReleases();
   </script>
 </body>
 </html>

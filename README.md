@@ -8,9 +8,11 @@
 
 | Platform | Package | Architecture | Direct Download |
 |---|---|---|---|
-| **Windows 10 / 11** | Standalone Setup Installer (`.exe`) | x64 (64-bit) | [⬇️ **Download Windows Installer (.exe)**](https://github.com/ankit2061/Proctora-Production/releases/download/v2.0.0/Proctora-Student-Setup-0.1.0.exe) |
-| **macOS** | Disk Image (`.dmg`) | Apple Silicon (M1/M2/M3/M4) | [⬇️ **Download macOS DMG (.dmg)**](https://github.com/ankit2061/Proctora-Production/releases/download/v2.0.0/Proctora.Student-0.1.0-arm64.dmg) |
-| **All Releases** | Source & Release Assets | Multi | [📦 View GitHub Releases v2.0.0](https://github.com/ankit2061/Proctora-Production/releases/tag/v2.0.0) |
+| **Windows 10 / 11** | Standalone Setup Installer (`.exe`) | x64 (64-bit, Bundled AI) | [⬇️ **Download Windows Installer (.exe)**](https://github.com/ankit2061/Proctora-Production/releases/download/v2.1.3/Proctora.Student-Setup-2.1.3.exe) |
+| **macOS** | Disk Image (`.dmg`) | Apple Silicon (M1/M2/M3/M4, Bundled AI) | [⬇️ **Download macOS DMG (.dmg)**](https://github.com/ankit2061/Proctora-Production/releases/download/v2.1.3/Proctora.Student-2.1.3-arm64.dmg) |
+| **All Releases** | Source & Release Assets | Multi | [📦 View Latest GitHub Releases (v2.1.3)](https://github.com/ankit2061/Proctora-Production/releases/latest) |
+
+> 💡 *Direct Latest Release Assets:* [Windows Standalone (.exe)](https://github.com/ankit2061/Proctora-Production/releases/download/v2.1.3/Proctora.Student-Setup-2.1.3.exe) · [macOS Apple Silicon (.dmg)](https://github.com/ankit2061/Proctora-Production/releases/download/v2.1.3/Proctora.Student-2.1.3-arm64.dmg) · [GitHub Releases Feed](https://github.com/ankit2061/Proctora-Production/releases)
 
 ---
 
