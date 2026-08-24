@@ -134,6 +134,18 @@ const hiddenImports = [
 
 const hiddenImportArgs = hiddenImports.map(pkg => `--hidden-import=${pkg}`);
 
+// Package data & metadata collection for Ultralytics YOLO, OpenCV, and MediaPipe
+const collectArgs = [
+  '--collect-all=ultralytics',
+  '--collect-all=cv2',
+  '--collect-all=mediapipe',
+  '--copy-metadata=ultralytics',
+  '--copy-metadata=torch',
+  '--copy-metadata=torchvision',
+  '--copy-metadata=tqdm',
+  '--copy-metadata=requests'
+];
+
 const pyinstallerArgs = [
   ...python.args,
   '-m',
@@ -147,6 +159,7 @@ const pyinstallerArgs = [
   `--specpath=${aiDir}`,
   ...addDataArgs,
   ...hiddenImportArgs,
+  ...collectArgs,
   path.join(aiDir, 'api.py')
 ];
 

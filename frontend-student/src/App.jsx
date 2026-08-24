@@ -476,7 +476,7 @@ function runClientVisionAnalysis(canvas, ctx, prevDataRef, audioEnergy = 0) {
     multiplePersons = true;
   }
 
-  // 2. 3D Head Pose (Yaw / Pitch) & Screen Gaze Tracking
+  // 2. Head Pose (Yaw / Pitch) & Screen Gaze Tracking (Client Heuristics)
   let yaw = 0;
   let pitch = 0;
   let roll = 0;
@@ -487,19 +487,20 @@ function runClientVisionAnalysis(canvas, ctx, prevDataRef, audioEnergy = 0) {
     const centroidX = sumX / skinPixels;
     const centroidY = sumY / skinPixels;
 
+    // Normalizing coordinates relative to camera frame center
     const normOffsetX = (centroidX - width * 0.5) / (width * 0.5);
-    const normOffsetY = (centroidY - height * 0.45) / (height * 0.45);
+    const normOffsetY = (centroidY - height * 0.50) / (height * 0.50);
 
-    yaw = normOffsetX * 60; // angular deviation in degrees
-    pitch = normOffsetY * 50;
+    yaw = normOffsetX * 45; // angular deviation in degrees
+    pitch = normOffsetY * 40;
 
-    // Gaze left or right away from monitor
-    if (Math.abs(yaw) > 22) {
+    // Monitor screen viewing area is wide (allows reading questions across exam window)
+    if (Math.abs(yaw) > 35) {
       gazeAway = true;
     }
 
-    // Downward gaze towards desk or hidden notes
-    if (pitch > 20) {
+    // Downward gaze towards desk or hidden notes (strict downward angle)
+    if (pitch > 32) {
       gazeDesk = true;
       gazeAway = true;
     }
@@ -1039,10 +1040,10 @@ export default function App() {
             headPose: analysis.head_pose || analysis.headPose || { yaw: 0, pitch: 0, roll: 0 }
           });
 
-          // Debounced gaze away
+          // Debounced gaze away (requires sustained 4 consecutive cycles to avoid false triggers during reading)
           if (analysis.gaze_desk || analysis.gazeDesk) {
             gazeAwayConsecutiveRef.current += 1;
-            if (gazeAwayConsecutiveRef.current === 3) {
+            if (gazeAwayConsecutiveRef.current === 4) {
               emitTelemetryEvent('GAZE_AWAY', {
                 model: 'Proctora_Vision_Gaze',
                 yaw: analysis.head_pose?.yaw || analysis.headPose?.yaw,
@@ -1053,7 +1054,7 @@ export default function App() {
             }
           } else if (analysis.gaze_away || analysis.gazeAway) {
             gazeAwayConsecutiveRef.current += 1;
-            if (gazeAwayConsecutiveRef.current === 3) {
+            if (gazeAwayConsecutiveRef.current === 4) {
               emitTelemetryEvent('GAZE_AWAY', {
                 model: 'Proctora_Vision_Gaze',
                 yaw: analysis.head_pose?.yaw || analysis.headPose?.yaw,

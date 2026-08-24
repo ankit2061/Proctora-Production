@@ -119,12 +119,13 @@ jobs:
             ## Proctora Desktop Assessment Station Release
 
             ### Downloads:
-            - **Windows**: `Proctora-Student-Setup-*.exe` (Standalone 100% In-House AI bundled with YOLOv8 & PyTorch)
+            - **Windows**: `Proctora-Student-Setup-*.exe` (Standalone In-House AI bundled with YOLOv8 & PyTorch)
             - **macOS**: `Proctora-Student-*.dmg`
 
             ### Key Features in this Build:
-            - **In-House Local AI**: Zero-latency YOLOv8 Contraband Detection & MediaPipe 3D Pose on `http://127.0.0.1:5001`.
+            - **Calibrated Camera Gaze Utilization**: High-accuracy screen gaze tracking with 3D SolvePnP head pose (-25° to +20° screen zone) and bilateral dual-iris tracking (eliminates false "away" triggers during natural exam reading).
+            - **Reliable Windows Mobile Phone Detection**: Bundled YOLOv8 contraband detector with complete PyInstaller metadata, standalone offline weights resolution, and calibrated phone detection.
+            - **Dual-Camera Desk Inspection**: Real-time smartphone pairing for full workspace visibility.
             - **Windows Kiosk Lockdown**: Full OS lockdown with Administrator elevation prompt and UAC integration.
-            - **Seamless Phone Desk Camera**: Dual-camera desk streaming over LAN or Ngrok tunnel reverse proxy.
           draft: false
           prerelease: false

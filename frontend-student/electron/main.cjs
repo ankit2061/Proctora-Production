@@ -464,6 +464,9 @@ function startBundledAIEngine() {
     // Packaged Electron extraResources location
     path.join(process.resourcesPath, 'proctora-ai', binaryName),
     path.join(process.resourcesPath, 'proctora-ai', 'proctora-ai', binaryName),
+    path.join(process.resourcesPath, binaryName),
+    path.join(app.getAppPath(), '..', 'proctora-ai', binaryName),
+    path.join(app.getAppPath(), '..', 'resources', 'proctora-ai', binaryName),
     // Local development dist location
     path.join(__dirname, '../../ai-engine/dist/proctora-ai', binaryName),
     path.join(__dirname, '../ai-engine/dist/proctora-ai', binaryName)

@@ -202,18 +202,35 @@ class ExamProctor:
         try:
             from ultralytics import YOLO
             cur_dir = os.path.dirname(os.path.abspath(__file__))
-            candidate_paths = [
-                os.path.join(cur_dir, "yolov8n.pt"),
-                os.path.join(cur_dir, "..", "yolov8n.pt"),
-                "yolov8n.pt"
-            ]
+            exe_dir = os.path.dirname(os.path.abspath(sys.executable)) if hasattr(sys, 'executable') else cur_dir
+            meipass_dir = getattr(sys, '_MEIPASS', None)
+
+            candidate_dirs = [cur_dir, exe_dir]
+            if meipass_dir:
+                candidate_dirs.insert(0, meipass_dir)
+            candidate_dirs.extend([
+                os.path.join(exe_dir, "_internal"),
+                os.path.join(exe_dir, "resources", "proctora-ai"),
+                os.path.join(exe_dir, "resources", "proctora-ai", "_internal"),
+                os.path.join(cur_dir, ".."),
+                os.getcwd()
+            ])
+
+            candidate_paths = []
+            for d in candidate_dirs:
+                if d and os.path.exists(d):
+                    candidate_paths.append(os.path.join(d, "yolov8n.pt"))
+            candidate_paths.append("yolov8n.pt")
+
             yolo_path = "yolov8n.pt"
             for p in candidate_paths:
-                if os.path.exists(p):
+                if os.path.exists(p) and os.path.isfile(p):
                     yolo_path = os.path.abspath(p)
                     break
+
+            logger.info(f"Loading YOLOv8 model from: {yolo_path}")
             self.yolo = YOLO(yolo_path)
-            logger.info(f"YOLOv8 Contraband detector loaded from {yolo_path} ✓")
+            logger.info(f"YOLOv8 Contraband detector loaded successfully from {yolo_path} ✓")
         except Exception as e:
             logger.error(f"Failed to load YOLOv8: {e}")
             self.yolo = None
@@ -545,24 +562,57 @@ class ExamProctor:
                     "roll": round(float(roll), 2)
                 }
                 
-                # Downward desk / scratchpad writing detection (pitch between -8° and -45° with centered yaw)
-                if norm_pitch < -8.0 and abs(yaw) <= 22.0:
+                # Screen viewing zone:
+                # Top-mounted webcams mean looking at the exam screen is naturally between -25° and +20° pitch.
+                # Downward desk / scratchpad writing detection: pitch strictly < -26.0° with centered/moderate yaw.
+                if norm_pitch < -26.0 and abs(yaw) <= 25.0:
                     analysis["gaze_desk"] = True
                     analysis["gaze_away"] = False
-                elif abs(yaw) > 24.0 or norm_pitch > 22.0 or norm_pitch < -48.0:
-                    # Head turned sideways or looking up
+                elif abs(yaw) > 30.0 or norm_pitch > 22.0 or norm_pitch < -48.0:
+                    # Head turned far sideways or tilted far up/down
                     analysis["gaze_away"] = True
 
-            # 3. Iris Eye Gaze Ratio (only if not already looking at desk)
+            # 3. Bilateral Dual-Iris Eye Gaze Tracking (only if not already looking at desk)
             try:
                 if not analysis.get("gaze_desk") and len(landmarks) > 473:
+                    # Left eye: outer corner 33, inner corner 133, iris center 468
                     left_iris = landmarks[468]
                     left_inner = landmarks[133]
                     left_outer = landmarks[33]
-                    eye_w = abs(left_inner.x - left_outer.x)
-                    if eye_w > 0.005:
-                        iris_ratio_x = abs(left_iris.x - min(left_inner.x, left_outer.x)) / eye_w
-                        if iris_ratio_x < 0.22 or iris_ratio_x > 0.78:
+                    left_eye_min_x = min(left_inner.x, left_outer.x)
+                    left_eye_w = abs(left_inner.x - left_outer.x)
+
+                    # Right eye: inner corner 362, outer corner 263, iris center 473
+                    right_iris = landmarks[473]
+                    right_inner = landmarks[362]
+                    right_outer = landmarks[263]
+                    right_eye_min_x = min(right_inner.x, right_outer.x)
+                    right_eye_w = abs(right_inner.x - right_outer.x)
+
+                    has_valid_left = left_eye_w > 0.006
+                    has_valid_right = right_eye_w > 0.006
+
+                    left_ratio = None
+                    right_ratio = None
+
+                    if has_valid_left:
+                        left_ratio = abs(left_iris.x - left_eye_min_x) / left_eye_w
+                    if has_valid_right:
+                        right_ratio = abs(right_iris.x - right_eye_min_x) / right_eye_w
+
+                    # Determine if both eyes agree on extreme lateral deflection
+                    # (Tolerant margin [0.15, 0.85] prevents false positives from reading wide screens or glasses)
+                    if left_ratio is not None and right_ratio is not None:
+                        both_looking_left = (left_ratio < 0.15 and right_ratio < 0.15)
+                        both_looking_right = (left_ratio > 0.85 and right_ratio > 0.85)
+                        if both_looking_left or both_looking_right:
+                            if abs(yaw) > 18.0 or left_ratio < 0.10 or left_ratio > 0.90:
+                                analysis["gaze_away"] = True
+                    elif left_ratio is not None:
+                        if (left_ratio < 0.12 or left_ratio > 0.88) and abs(yaw) > 20.0:
+                            analysis["gaze_away"] = True
+                    elif right_ratio is not None:
+                        if (right_ratio < 0.12 or right_ratio > 0.88) and abs(yaw) > 20.0:
                             analysis["gaze_away"] = True
             except Exception:
                 pass
@@ -616,14 +666,14 @@ class ExamProctor:
 
         try:
             # Calibrated thresholds for desk inspection:
-            # 67: cell phone (0.20), 63: laptop (0.30), 65: remote (0.30), 73: book (0.45)
+            # 67: cell phone (0.18), 63: laptop (0.28), 65: remote (0.28), 73: book (0.40)
             prohibited_thresholds = {
-                67: ("cell phone", 0.20),
-                63: ("laptop", 0.30),
-                65: ("remote", 0.30),
-                73: ("book", 0.45)
+                67: ("cell phone", 0.18),
+                63: ("laptop", 0.28),
+                65: ("remote", 0.28),
+                73: ("book", 0.40)
             }
-            results = self.yolo.predict(frame, verbose=False, conf=0.18)
+            results = self.yolo.predict(frame, verbose=False, conf=0.15)
             if len(results) > 0:
                 names = getattr(self.yolo, 'names', {}) or {}
                 for box in results[0].boxes:
@@ -636,16 +686,17 @@ class ExamProctor:
                         item_name, min_conf = prohibited_thresholds[cls_id]
                         if conf >= min_conf:
                             matched_item = item_name
-                    elif ("phone" in raw_name or "cell" in raw_name or "mobile" in raw_name) and conf >= 0.20:
+                    elif ("phone" in raw_name or "cell" in raw_name or "mobile" in raw_name or "telephone" in raw_name) and conf >= 0.18:
                         matched_item = "cell phone"
-                    elif "laptop" in raw_name and conf >= 0.30:
+                    elif "laptop" in raw_name and conf >= 0.28:
                         matched_item = "laptop"
-                    elif "book" in raw_name and conf >= 0.45:
+                    elif "book" in raw_name and conf >= 0.40:
                         matched_item = "book"
-                    elif "remote" in raw_name and conf >= 0.30:
+                    elif "remote" in raw_name and conf >= 0.28:
                         matched_item = "remote"
 
                     if matched_item:
+                        logger.info(f"Desk contraband detected: {matched_item} (conf={conf:.2f})")
                         if matched_item not in analysis["detected_objects"]:
                             analysis["detected_objects"].append(matched_item)
                         if analysis["contraband_detected"] is None:
@@ -684,20 +735,20 @@ class ExamProctor:
     def _detect_contraband(self, frame) -> Optional[str]:
         """
         Runs YOLOv8 and checks explicitly for prohibited items (cell phone, laptop, book, remote)
-        with calibrated confidence thresholds (0.25 for cellphone).
+        with calibrated confidence thresholds (0.18 for cellphone to detect held/angled phones).
         """
         if self.yolo is None:
             return None
             
         prohibited_thresholds = {
-            67: ("cell phone", 0.25),
-            63: ("laptop", 0.35),
-            65: ("remote", 0.30),
-            73: ("book", 0.45)
+            67: ("cell phone", 0.18),
+            63: ("laptop", 0.30),
+            65: ("remote", 0.28),
+            73: ("book", 0.40)
         }
         
         try:
-            results = self.yolo.predict(frame, verbose=False, conf=0.20)
+            results = self.yolo.predict(frame, verbose=False, conf=0.15)
             if len(results) == 0:
                 return None
                 
@@ -713,16 +764,18 @@ class ExamProctor:
                 if cls_id in prohibited_thresholds:
                     name, min_conf = prohibited_thresholds[cls_id]
                     if conf >= min_conf:
+                        logger.info(f"Primary camera contraband detected: {name} (cls={cls_id}, conf={conf:.2f})")
                         return name
                 
                 # String name matching
-                if ("phone" in raw_name or "cell" in raw_name or "mobile" in raw_name) and conf >= 0.25:
+                if ("phone" in raw_name or "cell" in raw_name or "mobile" in raw_name or "telephone" in raw_name) and conf >= 0.18:
+                    logger.info(f"Primary camera contraband detected: cell phone (matched '{raw_name}', conf={conf:.2f})")
                     return "cell phone"
-                if "laptop" in raw_name and conf >= 0.35:
+                if "laptop" in raw_name and conf >= 0.30:
                     return "laptop"
-                if "book" in raw_name and conf >= 0.45:
+                if "book" in raw_name and conf >= 0.40:
                     return "book"
-                if "remote" in raw_name and conf >= 0.30:
+                if "remote" in raw_name and conf >= 0.28:
                     return "remote"
         except Exception as e:
             logger.debug(f"Contraband detection error: {e}")
